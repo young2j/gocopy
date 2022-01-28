@@ -7,6 +7,8 @@
 
 package model
 
+// import "go.mongodb.org/mongo-driver/bson/primitive"
+
 import "github.com/globalsign/mgo/bson"
 
 type Perm struct {
@@ -21,6 +23,7 @@ type EmbedFields struct {
 
 type AccessRolePerms struct {
 	Id       bson.ObjectId
+	// Id       primitive.ObjectID
 	IdHex    string
 	Role     string
 	Roll     *int

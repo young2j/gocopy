@@ -14,6 +14,8 @@ import (
 	"github.com/young2j/gocopy/example/model"
 	"github.com/young2j/gocopy/example/types"
 
+	// "go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/globalsign/mgo/bson"
 	"github.com/young2j/gocopy"
 )
@@ -142,15 +144,18 @@ func main() {
 	// from field to another field
 	// objectId to string and vice versa
 	ost1 := model.AccessRolePerms{
-		From:  "fromto",
-		Id:    bson.NewObjectId(),
+		From: "fromto",
+		Id:   bson.NewObjectId(),
+		// Id:    primitive.NewObjectID(),
 		IdHex: "61f04828eb37b662c8f3b085",
 	}
 	ost2 := types.AccessRolePerms{}
 	opt := gocopy.Option{
 		NameFromTo:       map[string]string{"From": "To"},
-		ObjectIdToString: "Id",
-		StringToObjectId: "IdHex",
+		ObjectIdToString: map[string]string{"Id": "mgo"},
+		StringToObjectId: map[string]string{"IdHex": "mgo"},
+		// ObjectIdToString: map[string]string{"Id": "official"},
+		// StringToObjectId: map[string]string{"IdHex": "official"},
 	}
 	gocopy.CopyWithOption(&ost1, &ost2, &opt)
 	fmt.Println("==============================")

@@ -6,7 +6,10 @@
  */
 package types
 
-import "github.com/globalsign/mgo/bson"
+import (
+	"github.com/globalsign/mgo/bson"
+	// "go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Perm struct {
 	Action string
@@ -14,8 +17,9 @@ type Perm struct {
 }
 
 type AccessRolePerms struct {
-	Id      string
+	Id string
 	IdHex   bson.ObjectId
+	// IdHex   primitive.ObjectID
 	Role    *string
 	Roll    *int
 	Actions []string

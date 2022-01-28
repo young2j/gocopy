@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
@@ -46,6 +47,35 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 			continue
 		}
 
+		// specially handle bson.ObjectId to string and vice versa
+		if objectIdType, ok := opt.ObjectIdToString[fromField.Name]; ok {
+			if objectIdType == "mgo" {
+				objectId, ok := fromFieldValue.Interface().(bson.ObjectId)
+				if ok {
+					toFieldValue.Set(reflect.ValueOf(objectId.Hex()))
+					continue
+				}
+			} else if objectIdType == "official" {
+				objectId, ok := fromFieldValue.Interface().(primitive.ObjectID)
+				if ok {
+					toFieldValue.Set(reflect.ValueOf(objectId.Hex()))
+					continue
+				}
+			}
+		}
+		if objectIdType, ok := opt.StringToObjectId[fromField.Name]; ok {
+			if objectIdType == "mgo" {
+				objectId := bson.ObjectIdHex(fromFieldValue.String())
+				toFieldValue.Set(reflect.ValueOf(objectId))
+				continue
+			} else if objectIdType == "official" {
+				if objectId, err := primitive.ObjectIDFromHex(fromFieldValue.String()); err == nil {
+					toFieldValue.Set(reflect.ValueOf(objectId))
+					continue
+				}
+			}
+		}
+
 		fromFieldType := indirectType(fromField.Type)
 		toFieldType := indirectType(toField.Type)
 		// can direct assign
@@ -63,17 +93,9 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 				switch fromFieldKind {
 				// slice append slice, need to avoid zero slice
 				case reflect.Slice:
-					// if !toFieldValue.IsValid() { // zero slice
-					// 	toFieldValue = indirectValue(reflect.New(fromFieldValue.Type()))
-					// }
-					// dest := indirectValue(reflect.New(fromFieldValue.Type()))
-					// dest.Set(toFieldValue)
-					// copySlice(fromFieldValue, dest, opt)
 					copySlice(fromFieldValue, toFieldValue, opt)
-
 				// map set kv, need to avoid nil map
 				case reflect.Map:
-					// toFieldValue := reflect.MakeMapWithSize(toFieldType, fromFieldValue.Len())
 					copyMap(fromFieldValue, toFieldValue, opt)
 				default:
 					if toFieldValue.Kind() == reflect.Ptr {
@@ -88,18 +110,6 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 			// 类型可转换拷贝
 		} else if fromFieldType.ConvertibleTo(toFieldType) {
 			convertValue := fromFieldValue.Convert(toFieldType)
-			// specially handle bson.ObjectId to string and vice versa
-			if opt.ObjectIdToString == fromField.Name {
-				objectId, ok := fromFieldValue.Interface().(bson.ObjectId)
-				if ok {
-					convertValue = reflect.ValueOf(objectId.Hex())
-				}
-			}
-			if opt.StringToObjectId == fromField.Name {
-				objectId := bson.ObjectIdHex(fromFieldValue.String())
-				convertValue = reflect.ValueOf(objectId)
-			}
-
 			if !opt.Append { // not append
 				toFieldValue.Set(convertValue) // set to converted value
 			} else { // append mode
@@ -107,17 +117,9 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 				switch fromFieldKind {
 				// slice append slice, need to avoid zero slice
 				case reflect.Slice:
-					// if !toFieldValue.IsValid() { // zero slice
-					// 	toFieldValue = indirectValue(reflect.New(fromFieldValue.Type()))
-					// }
-					// dest := indirectValue(reflect.New(fromFieldValue.Type()))
-					// dest.Set(toFieldValue)
-					// copySlice(fromFieldValue, dest, opt)
 					copySlice(convertValue, toFieldValue, opt)
-
 				// map set kv, need to avoid nil map
 				case reflect.Map:
-					// toFieldValue := reflect.MakeMapWithSize(toFieldType, fromFieldValue.Len())
 					copyMap(convertValue, toFieldValue, opt)
 				default:
 					toFieldValue.Set(convertValue) // set to converted value

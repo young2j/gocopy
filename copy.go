@@ -12,8 +12,8 @@ import (
 
 type Option struct {
 	NameFromTo       map[string]string
-	ObjectIdToString string
-	StringToObjectId string
+	ObjectIdToString map[string]string // eg. {"Id": "mgo"}
+	StringToObjectId map[string]string // eg. {"Id": "official"}
 	Append           bool
 }
 
