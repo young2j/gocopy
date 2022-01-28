@@ -51,11 +51,38 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 		// can direct assign
 		// 可直接赋值拷贝
 		if fromFieldType.AssignableTo(toFieldType) {
-			if toFieldValue.Kind() == reflect.Ptr {
-				// string -> *string
-				toFieldValue.Set(fromFieldValue.Addr())
-			} else {
-				toFieldValue.Set(fromFieldValue)
+			if !opt.Append { // not append
+				if toFieldValue.Kind() == reflect.Ptr {
+					// like string -> *string
+					toFieldValue.Set(fromFieldValue.Addr())
+				} else {
+					toFieldValue.Set(fromFieldValue)
+				}
+			} else { // append mode
+				fromFieldKind := fromFieldType.Kind()
+				switch fromFieldKind {
+				// slice append slice, need to avoid zero slice
+				case reflect.Slice:
+					// if !toFieldValue.IsValid() { // zero slice
+					// 	toFieldValue = indirectValue(reflect.New(fromFieldValue.Type()))
+					// }
+					// dest := indirectValue(reflect.New(fromFieldValue.Type()))
+					// dest.Set(toFieldValue)
+					// copySlice(fromFieldValue, dest, opt)
+					copySlice(fromFieldValue, toFieldValue, opt)
+
+				// map set kv, need to avoid nil map
+				case reflect.Map:
+					// toFieldValue := reflect.MakeMapWithSize(toFieldType, fromFieldValue.Len())
+					copyMap(fromFieldValue, toFieldValue, opt)
+				default:
+					if toFieldValue.Kind() == reflect.Ptr {
+						// like string -> *string
+						toFieldValue.Set(fromFieldValue.Addr())
+					} else {
+						toFieldValue.Set(fromFieldValue)
+					}
+				}
 			}
 			// can convert field type
 			// 类型可转换拷贝
@@ -73,8 +100,29 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 				convertValue = reflect.ValueOf(objectId)
 			}
 
-			toFieldValue.Set(convertValue) // set to converted value
+			if !opt.Append { // not append
+				toFieldValue.Set(convertValue) // set to converted value
+			} else { // append mode
+				fromFieldKind := fromFieldType.Kind()
+				switch fromFieldKind {
+				// slice append slice, need to avoid zero slice
+				case reflect.Slice:
+					// if !toFieldValue.IsValid() { // zero slice
+					// 	toFieldValue = indirectValue(reflect.New(fromFieldValue.Type()))
+					// }
+					// dest := indirectValue(reflect.New(fromFieldValue.Type()))
+					// dest.Set(toFieldValue)
+					// copySlice(fromFieldValue, dest, opt)
+					copySlice(convertValue, toFieldValue, opt)
 
+				// map set kv, need to avoid nil map
+				case reflect.Map:
+					// toFieldValue := reflect.MakeMapWithSize(toFieldType, fromFieldValue.Len())
+					copyMap(convertValue, toFieldValue, opt)
+				default:
+					toFieldValue.Set(convertValue) // set to converted value
+				}
+			}
 		} else {
 			// can not directly assign or convert
 			fromFieldKind := fromFieldType.Kind()
