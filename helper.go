@@ -4,7 +4,7 @@
  * Author: ysj
  * Description: helper func
  */
-package copy
+package gocopy
 
 import "reflect"
 

@@ -5,7 +5,7 @@
  * Description:  copy map to map
  */
 
-package copy
+package gocopy
 
 import (
 	"reflect"

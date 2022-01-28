@@ -4,7 +4,7 @@
  * Author: ysj
  * Description: copy slice and map by type; copy struct by field name
  */
-package copy
+package gocopy
 
 import (
 	"reflect"

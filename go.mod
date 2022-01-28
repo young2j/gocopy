@@ -1,4 +1,4 @@
-module github.com/young2j/copy
+module github.com/young2j/gocopy
 
 go 1.16
 

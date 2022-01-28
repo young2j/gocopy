@@ -4,7 +4,7 @@
  * Author: ysj
  * Description:  copy struct to struct
  */
-package copy
+package gocopy
 
 import (
 	"reflect"

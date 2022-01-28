@@ -5,7 +5,7 @@
  * Description:  slice to slice copy
  */
 
-package copy
+package gocopy
 
 import (
 	"reflect"
