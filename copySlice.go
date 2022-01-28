@@ -11,7 +11,7 @@ import (
 	"reflect"
 )
 
-func copySlice(fromValue, toValue reflect.Value, opt *ConvertOption) {
+func copySlice(fromValue, toValue reflect.Value, opt *Option) {
 	fromType := indirectType(fromValue.Type())
 	toType := indirectType(toValue.Type())
 

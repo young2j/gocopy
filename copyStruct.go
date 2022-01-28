@@ -12,7 +12,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-func copyStruct(fromValue, toValue reflect.Value, opt *ConvertOption) {
+func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 	fromType := indirectType(fromValue.Type())
 	toType := indirectType(toValue.Type())
 

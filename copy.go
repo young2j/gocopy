@@ -10,7 +10,7 @@ import (
 	"reflect"
 )
 
-type ConvertOption struct {
+type Option struct {
 	NameFromTo       map[string]string
 	ObjectIdToString string
 	StringToObjectId string
@@ -18,10 +18,10 @@ type ConvertOption struct {
 }
 
 func Copy(from, to interface{}) {
-	CopyWithOption(from, to, &ConvertOption{Append: false})
+	CopyWithOption(from, to, &Option{Append: false})
 }
 
-func CopyWithOption(from, to interface{}, opt *ConvertOption) {
+func CopyWithOption(from, to interface{}, opt *Option) {
 	fromValue := indirectValue(reflect.ValueOf(from))
 	toValue := indirectValue(reflect.ValueOf(to))
 

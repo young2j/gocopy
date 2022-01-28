@@ -11,7 +11,7 @@ import (
 	"reflect"
 )
 
-func copyMap(fromValue, toValue reflect.Value, opt *ConvertOption) {
+func copyMap(fromValue, toValue reflect.Value, opt *Option) {
 	fromType := indirectType(fromValue.Type())
 	toType := indirectType(toValue.Type())
 
