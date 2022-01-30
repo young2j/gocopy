@@ -25,7 +25,7 @@ func main() {
 	// 1. simple slice
 	s1 := []int{3, 4, 5}
 	s2 := make([]int, 0)
-	gocopy.Copy(&s1, &s2)
+	gocopy.Copy(&s2, &s1)
 	// copier.Copy(&s2, &s1)
 	fmt.Println("==============================")
 	fmt.Printf("s2: %v\n", s2)
@@ -33,7 +33,7 @@ func main() {
 	// 2. map slice
 	ms1 := []map[string]int{{"key1": 1, "key2": 2}}
 	ms2 := make([]map[string]int, 0)
-	gocopy.Copy(&ms1, &ms2)
+	gocopy.Copy(&ms2, &ms1)
 	// copier.Copy(&ms2, &ms1)
 	fmt.Println("==============================")
 	fmt.Printf("ms2: %v\n", ms2)
@@ -41,7 +41,7 @@ func main() {
 	// 3. struct slice
 	ss1 := []model.Perm{{Action: "GET", Label: "rest-get-method"}}
 	ss2 := make([]types.Perm, 0)
-	gocopy.Copy(&ss1, &ss2)
+	gocopy.Copy(&ss2, &ss1)
 	// copier.Copy(&ss2, &ss1)
 	fmt.Println("==============================")
 	fmt.Printf("ss2: %v\n", ss2)
@@ -50,7 +50,7 @@ func main() {
 	// 1. simple map
 	m1 := map[string]int{"key1": 1, "key2": 2}
 	m2 := make(map[string]int)
-	gocopy.Copy(&m1, &m2)
+	gocopy.Copy(&m2, &m1)
 	// copier.Copy(&m2, &m1)
 	fmt.Println("==============================")
 	fmt.Printf("m2: %v\n", m2)
@@ -58,7 +58,7 @@ func main() {
 	// 2. slice map
 	sm1 := map[int][]string{1: {"a", "b", "c"}}
 	sm2 := make(map[int][]string)
-	gocopy.Copy(&sm1, &sm2)
+	gocopy.Copy(&sm2, &sm1)
 	// copier.Copy(&sm2, &sm1)
 	fmt.Println("==============================")
 	fmt.Printf("sm2: %v\n", sm2)
@@ -66,7 +66,7 @@ func main() {
 	// 3. struct map
 	stm1 := map[string]model.Perm{"perm1": {Action: "POST", Label: "rest-post-method"}}
 	stm2 := make(map[string]types.Perm)
-	gocopy.Copy(&stm1, &stm2)
+	gocopy.Copy(&stm2, &stm1)
 	// copier.Copy(&stm2, &stm1)
 	fmt.Println("==============================")
 	fmt.Printf("stm2: %v\n", stm2)
@@ -84,7 +84,7 @@ func main() {
 		PermMap: map[string]*model.Perm{"perm": {Action: "PUT", Label: "修改"}},
 	}
 	st2 := types.AccessRolePerms{}
-	gocopy.Copy(st1, &st2)
+	gocopy.Copy(&st2, &st1)
 	// copier.Copy(&st2, &st1)
 	fmt.Println("==============================")
 	fmt.Printf("st2: %#v\n", st2)
@@ -103,20 +103,20 @@ func main() {
 	// 1. append slice
 	as1 := []int{3, 4, 5}
 	as2 := []int{1, 2}
-	gocopy.CopyWithOption(&as1, &as2, &opts)
+	gocopy.CopyWithOption(&as2, &as1, &opts)
 	fmt.Println("==============================")
 	fmt.Printf("as2: %v\n", as2)
 
 	// 2. append map
 	am1 := map[string]int{"key1": 1, "key2": 2}
 	am2 := map[string]int{"key0": 0, "key2": 3}
-	gocopy.CopyWithOption(&am1, &am2, &opts)
+	gocopy.CopyWithOption(&am2, &am1, &opts)
 	fmt.Println("==============================")
 	fmt.Printf("am2: %v\n", am2)
 
 	ams1 := map[string][]int{"key1": {1}, "key2": {2}}
 	ams2 := map[string][]int{"key0": {0}, "key2": {3}}
-	gocopy.CopyWithOption(&ams1, &ams2, &opts)
+	gocopy.CopyWithOption(&ams2, &ams1, &opts)
 	fmt.Println("==============================")
 	fmt.Printf("ams2: %v\n", ams2)
 
@@ -131,7 +131,7 @@ func main() {
 		Perms:   []*types.Perm{{Action: "GET", Label: "get-label"}},
 		PermMap: map[string]*types.Perm{"get": {Action: "GET", Label: "get-label"}},
 	}
-	gocopy.CopyWithOption(&ast1, &ast2, &opts)
+	gocopy.CopyWithOption(&ast2, &ast1, &opts)
 	fmt.Println("==============================")
 	fmt.Printf("ast2.Actions: %v\n", ast2.Actions)
 	for i, perm := range ast2.Perms {
@@ -157,7 +157,7 @@ func main() {
 		// ObjectIdToString: map[string]string{"Id": "official"},
 		// StringToObjectId: map[string]string{"IdHex": "official"},
 	}
-	gocopy.CopyWithOption(&ost1, &ost2, &opt)
+	gocopy.CopyWithOption(&ost2, &ost1, &opt)
 	fmt.Println("==============================")
 	fmt.Printf("ost2.To: %v\n", ost2.To)
 	fmt.Printf("ost2.Id: %v\n", ost2.Id)

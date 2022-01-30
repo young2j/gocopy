@@ -337,6 +337,7 @@ func TestCopyWithOption(t *testing.T) {
 					ObjectIdToString: map[string]string{"Id1": "mgo", "Id2": "official"},       // Id1: bson.ObjectId, Id2: primitive.ObjectId
 					StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
 					Append:           true,
+					NameFromTo:       map[string]string{"From": "To"},
 				},
 			},
 		},
@@ -400,6 +401,10 @@ func TestCopyWithOption(t *testing.T) {
 				actions := append(to.Actions, from.Actions...)
 
 				CopyWithOption(&to, from, tt.args.opt)
+
+				if from.From != string(to.To) {
+					t.Fail()
+				}
 
 				if from.Id1.Hex() != to.Id1 {
 					t.Fail()
