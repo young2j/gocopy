@@ -18,7 +18,7 @@ type Option struct {
 }
 
 func Copy(from, to interface{}) {
-	CopyWithOption(from, to, &Option{Append: false})
+	CopyWithOption(from, to, &Option{})
 }
 
 func CopyWithOption(from, to interface{}, opt *Option) {

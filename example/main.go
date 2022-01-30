@@ -84,7 +84,7 @@ func main() {
 		PermMap: map[string]*model.Perm{"perm": {Action: "PUT", Label: "修改"}},
 	}
 	st2 := types.AccessRolePerms{}
-	gocopy.Copy(&st1, &st2)
+	gocopy.Copy(st1, &st2)
 	// copier.Copy(&st2, &st1)
 	fmt.Println("==============================")
 	fmt.Printf("st2: %#v\n", st2)
