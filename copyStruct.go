@@ -84,7 +84,13 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 			if !opt.Append { // not append
 				if toFieldValue.Kind() == reflect.Ptr {
 					// like string -> *string
-					toFieldValue.Set(fromFieldValue.Addr())
+					if fromFieldValue.CanAddr() {
+						toFieldValue.Set(fromFieldValue.Addr())
+					} else {
+						fromFV := indirectValue(reflect.New(fromFieldType))
+						fromFV.Set(fromFieldValue)
+						toFieldValue.Set(fromFV.Addr())
+					}
 				} else {
 					toFieldValue.Set(fromFieldValue)
 				}
@@ -100,7 +106,13 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 				default:
 					if toFieldValue.Kind() == reflect.Ptr {
 						// like string -> *string
-						toFieldValue.Set(fromFieldValue.Addr())
+						if fromFieldValue.CanAddr() {
+							toFieldValue.Set(fromFieldValue.Addr())
+						} else {
+							fromFV := indirectValue(reflect.New(fromFieldType))
+							fromFV.Set(fromFieldValue)
+							toFieldValue.Set(fromFV.Addr())
+						}
 					} else {
 						toFieldValue.Set(fromFieldValue)
 					}
