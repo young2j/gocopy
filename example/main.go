@@ -11,13 +11,11 @@ import (
 	"fmt"
 
 	// "github.com/jinzhu/copier"
-	"github.com/young2j/gocopy/example/model"
-	"github.com/young2j/gocopy/example/types"
-
-	// "go.mongodb.org/mongo-driver/bson/primitive"
-
 	"github.com/globalsign/mgo/bson"
 	"github.com/young2j/gocopy"
+	"github.com/young2j/gocopy/example/model"
+	"github.com/young2j/gocopy/example/types"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func main() {
@@ -79,17 +77,18 @@ func main() {
 		EmbedFields: model.EmbedFields{
 			EmbedF1: "embedF1",
 		},
-		Actions: []string{"xxx", "yyy"},
-		Perms:   []*model.Perm{{Action: "GET", Label: "fuck"}},
-		PermMap: map[string]*model.Perm{"perm": {Action: "PUT", Label: "修改"}},
+		Actions: []string{"GET", "POST"},
+		Perms:   []*model.Perm{{Action: "GET", Label: "rest-get-method"}},
+		PermMap: map[string]*model.Perm{"perm": {Action: "PUT", Label: "rest-put-method"}},
 	}
 	st2 := types.AccessRolePerms{}
 	gocopy.Copy(&st2, &st1)
 	// copier.Copy(&st2, &st1)
 	fmt.Println("==============================")
-	fmt.Printf("st2: %#v\n", st2)
+	// fmt.Printf("st2: %#v\n", st2)
 	fmt.Printf("st2.Role: %v\n", *st2.Role)
 	fmt.Printf("st2.Roll: %v\n", *st2.Roll)
+	fmt.Printf("st2.Actions: %v\n", st2.Actions)
 
 	for _, v := range st2.Perms {
 		fmt.Printf("Perms: %#v\n", v)
@@ -123,13 +122,13 @@ func main() {
 	// 3. append struct map/slice field
 	ast1 := model.AccessRolePerms{
 		Actions: []string{"PUT", "DELETE"},
-		Perms:   []*model.Perm{{Action: "PUT", Label: "put-label"}},
-		PermMap: map[string]*model.Perm{"delete": {Action: "DELETE", Label: "delete-label"}},
+		Perms:   []*model.Perm{{Action: "PUT", Label: "rest-put-method"}},
+		PermMap: map[string]*model.Perm{"delete": {Action: "DELETE", Label: "rest-delete-method"}},
 	}
 	ast2 := types.AccessRolePerms{
 		Actions: []string{"GET", "POST"},
-		Perms:   []*types.Perm{{Action: "GET", Label: "get-label"}},
-		PermMap: map[string]*types.Perm{"get": {Action: "GET", Label: "get-label"}},
+		Perms:   []*types.Perm{{Action: "GET", Label: "rest-get-method"}},
+		PermMap: map[string]*types.Perm{"get": {Action: "GET", Label: "rest-get-method"}},
 	}
 	gocopy.CopyWithOption(&ast2, &ast1, &opts)
 	fmt.Println("==============================")
@@ -142,24 +141,36 @@ func main() {
 	}
 
 	// from field to another field
-	// objectId to string and vice versa
 	ost1 := model.AccessRolePerms{
 		From: "fromto",
-		Id:   bson.NewObjectId(),
-		// Id:    primitive.NewObjectID(),
-		IdHex: "61f04828eb37b662c8f3b085",
 	}
 	ost2 := types.AccessRolePerms{}
 	opt := gocopy.Option{
-		NameFromTo:       map[string]string{"From": "To"},
-		ObjectIdToString: map[string]string{"Id": "mgo"},
-		StringToObjectId: map[string]string{"IdHex": "mgo"},
-		// ObjectIdToString: map[string]string{"Id": "official"},
-		// StringToObjectId: map[string]string{"IdHex": "official"},
+		NameFromTo: map[string]string{"From": "To"},
 	}
 	gocopy.CopyWithOption(&ost2, &ost1, &opt)
 	fmt.Println("==============================")
-	fmt.Printf("ost2.To: %v\n", ost2.To)
-	fmt.Printf("ost2.Id: %v\n", ost2.Id)
-	fmt.Printf("ost2.IdHex: %v\n", ost2.IdHex)
+	fmt.Printf("ost2.To: %v\n", string(ost2.To))
+
+	// objectId to string and vice versa
+	from := model.AccessRolePerms{
+		Id1:    bson.NewObjectId(),
+		Id2:    primitive.NewObjectID(),
+		Id1Hex: "61f04828eb37b662c8f3b085",
+		Id2Hex: "61f04828eb37b662c8f3b085",
+	}
+	to := types.AccessRolePerms{
+		Actions: []string{"GET", "POST"},
+	}
+	option := &gocopy.Option{
+		ObjectIdToString: map[string]string{"Id1": "mgo", "Id2": "official"},       // Id1: bson.ObjectId, Id2: primitive.ObjectId
+		StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
+		Append:           true,
+	}
+	gocopy.CopyWithOption(&to, from, option)
+	fmt.Println("==============================")
+	fmt.Printf("from.Id1: %v to.Id1: %v \n", from.Id1, to.Id1)
+	fmt.Printf("from.Id2: %v to.Id2: %v \n", from.Id2, to.Id2)
+	fmt.Printf("from.Id1Hex: %v to.Id1Hex: %v \n", from.Id1Hex, to.Id1Hex)
+	fmt.Printf("from.Id2Hex: %v to.Id2Hex: %v \n", from.Id2Hex, to.Id2Hex)
 }

@@ -7,9 +7,10 @@
 
 package model
 
-// import "go.mongodb.org/mongo-driver/bson/primitive"
-
-import "github.com/globalsign/mgo/bson"
+import (
+	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Perm struct {
 	Action string
@@ -22,14 +23,15 @@ type EmbedFields struct {
 }
 
 type AccessRolePerms struct {
-	Id       bson.ObjectId
-	// Id       primitive.ObjectID
-	IdHex    string
-	Role     string
-	Roll     *int
-	Actions  []string
-	Perms    []*Perm
-	PermMap  map[string]*Perm
-	From     string
+	Id1     bson.ObjectId
+	Id2     primitive.ObjectID
+	Id1Hex  string
+	Id2Hex  string
+	Role    string
+	Roll    *int
+	Actions []string
+	Perms   []*Perm
+	PermMap map[string]*Perm
+	From    string
 	EmbedFields
 }
