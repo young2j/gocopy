@@ -67,7 +67,6 @@ func TestCopy(t *testing.T) {
 		name string
 		args args
 	}{
-		// TODO: Add test cases.
 		{
 			name: "copyslice-simple",
 			args: args{
@@ -139,7 +138,7 @@ func TestCopy(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
-				Copy(from, &to)
+				Copy(&to, from)
 				for i := 0; i < len(to); i++ {
 					t.Logf("from[%d] == to[%d] = %v\n", i, i, from[i] == to[i])
 					if from[i] != to[i] {
@@ -155,7 +154,7 @@ func TestCopy(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
-				Copy(from, &to)
+				Copy(&to, from)
 				for i := 0; i < len(to); i++ {
 					elem := to[i]
 					for k, v := range elem {
@@ -174,7 +173,7 @@ func TestCopy(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
-				Copy(from, &to)
+				Copy(&to, from)
 				for i := 0; i < len(to); i++ {
 					elem := to[i]
 					t.Logf("to.Action==from.Action: %v\n", elem.Action == from[i].Action)
@@ -195,7 +194,7 @@ func TestCopy(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
-				Copy(from, &to)
+				Copy(&to, from)
 				for k, v := range to {
 					t.Logf("to[%v]==from[%v]: %v, %v \n", k, k, v, from[k] == v)
 					if from[k] != v {
@@ -211,7 +210,7 @@ func TestCopy(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
-				Copy(from, &to)
+				Copy(&to, from)
 				for k, v := range to {
 					t.Logf("to[%v]==from[%v]: %v, \n", k, k, v)
 					for i := 0; i < len(v); i++ {
@@ -229,7 +228,7 @@ func TestCopy(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
-				Copy(from, &to)
+				Copy(&to, from)
 				for k, v := range to {
 					t.Logf("to[%v]==from[%v]: %v, \n", k, k, v)
 					if to[k].Action != from[k].Action {
@@ -248,7 +247,7 @@ func TestCopy(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
-				Copy(from, &to)
+				Copy(&to, from)
 				t.Logf("to.Role:%v from.Role: %v\n", *to.Role, from.Role)
 				t.Logf("to.Roll:%v from.Roll: %v\n", to.Roll, from.Roll)
 				t.Logf("to.EmbedF1:%v from.EmbedF1: %v\n", to.EmbedF1, from.EmbedF1)
@@ -354,7 +353,7 @@ func TestCopyWithOption(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
-				CopyWithOption(from, &to, tt.args.opt)
+				CopyWithOption(&to, from, tt.args.opt)
 				fromto := append(to, from...)
 				for i := 0; i < len(to); i++ {
 					if to[i] != fromto[i] {
@@ -380,7 +379,7 @@ func TestCopyWithOption(t *testing.T) {
 				}
 				t.Logf("fromto:%#v\n", fromto)
 
-				CopyWithOption(from, &to, tt.args.opt)
+				CopyWithOption(&to, from, tt.args.opt)
 
 				for k, v := range fromto {
 					for i := 0; i < len(v); i++ {
@@ -400,7 +399,7 @@ func TestCopyWithOption(t *testing.T) {
 				}
 				actions := append(to.Actions, from.Actions...)
 
-				CopyWithOption(from, &to, tt.args.opt)
+				CopyWithOption(&to, from, tt.args.opt)
 
 				if from.Id1.Hex() != to.Id1 {
 					t.Fail()
@@ -443,7 +442,7 @@ func BenchmarkCopy(b *testing.B) {
 	to := AccessRolePerms2{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Copy(from, &to)
+		Copy(&to, from)
 	}
 }
 func BenchmarkCopier(b *testing.B) {
@@ -461,7 +460,7 @@ func BenchmarkCopier(b *testing.B) {
 	to := AccessRolePerms2{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// copier.Copy(&to, from)
-		copier.CopyWithOption(&to, from, copier.Option{DeepCopy: true})
+		copier.Copy(&to, from)
+		// copier.CopyWithOption(&to, from, copier.Option{DeepCopy: true})
 	}
 }

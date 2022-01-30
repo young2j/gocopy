@@ -11,7 +11,7 @@ import (
 	"reflect"
 )
 
-func copySlice(fromValue, toValue reflect.Value, opt *Option) {
+func copySlice(toValue, fromValue reflect.Value, opt *Option) {
 	fromType := indirectType(fromValue.Type())
 	toType := indirectType(toValue.Type())
 
@@ -51,7 +51,7 @@ func copySlice(fromValue, toValue reflect.Value, opt *Option) {
 					continue
 				}
 				toElemValue := reflect.New(toElemType)
-				copySlice(fromValue.Index(i), toElemValue, opt)
+				copySlice(toElemValue, fromValue.Index(i), opt)
 				toValue = reflect.Append(toValue, toElemValue)
 			}
 			// b. map to map
@@ -61,7 +61,7 @@ func copySlice(fromValue, toValue reflect.Value, opt *Option) {
 					continue
 				}
 				toElemValue := reflect.New(toElemType)
-				copyMap(fromValue.Index(i), toElemValue, opt)
+				copyMap(toElemValue, fromValue.Index(i), opt)
 				toValue = reflect.Append(toValue, toElemValue)
 			}
 			// c. struct to struct
@@ -71,7 +71,7 @@ func copySlice(fromValue, toValue reflect.Value, opt *Option) {
 					continue
 				}
 				toElemValue := reflect.New(toElemType)
-				copyStruct(fromValue.Index(i), toElemValue, opt)
+				copyStruct(toElemValue, fromValue.Index(i), opt)
 				toValue = reflect.Append(toValue, toElemValue)
 			}
 		}

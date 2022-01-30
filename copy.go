@@ -17,11 +17,11 @@ type Option struct {
 	Append           bool
 }
 
-func Copy(from, to interface{}) {
-	CopyWithOption(from, to, &Option{})
+func Copy(to, from interface{}) {
+	CopyWithOption(to, from, &Option{})
 }
 
-func CopyWithOption(from, to interface{}, opt *Option) {
+func CopyWithOption(to, from interface{}, opt *Option) {
 	fromValue := indirectValue(reflect.ValueOf(from))
 	toValue := indirectValue(reflect.ValueOf(to))
 
@@ -29,13 +29,13 @@ func CopyWithOption(from, to interface{}, opt *Option) {
 	toKind := indirectType(reflect.TypeOf(to)).Kind()
 	// 1. slice to slice
 	if toKind == reflect.Slice && fromKind == reflect.Slice {
-		copySlice(fromValue, toValue, opt)
+		copySlice(toValue, fromValue, opt)
 		// 2. map to map
 	} else if toKind == reflect.Map && fromKind == reflect.Map {
-		copyMap(fromValue, toValue, opt)
+		copyMap(toValue, fromValue, opt)
 		// 3. struct to struct
 	} else if toKind == reflect.Struct && fromKind == reflect.Struct {
-		copyStruct(fromValue, toValue, opt)
+		copyStruct(toValue, fromValue, opt)
 	} else {
 		panic("can only copy slice to slice, map to map, struct to struct.")
 	}

@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
+func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 	fromType := indirectType(fromValue.Type())
 	toType := indirectType(toValue.Type())
 
@@ -99,10 +99,10 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 				switch fromFieldKind {
 				// slice append slice, need to avoid zero slice
 				case reflect.Slice:
-					copySlice(fromFieldValue, toFieldValue, opt)
+					copySlice(toFieldValue, fromFieldValue, opt)
 				// map set kv, need to avoid nil map
 				case reflect.Map:
-					copyMap(fromFieldValue, toFieldValue, opt)
+					copyMap(toFieldValue, fromFieldValue, opt)
 				default:
 					if toFieldValue.Kind() == reflect.Ptr {
 						// like string -> *string
@@ -129,10 +129,10 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 				switch fromFieldKind {
 				// slice append slice, need to avoid zero slice
 				case reflect.Slice:
-					copySlice(convertValue, toFieldValue, opt)
+					copySlice(toFieldValue, convertValue, opt)
 				// map set kv, need to avoid nil map
 				case reflect.Map:
-					copyMap(convertValue, toFieldValue, opt)
+					copyMap(toFieldValue, convertValue, opt)
 				default:
 					toFieldValue.Set(convertValue) // set to converted value
 				}
@@ -143,13 +143,13 @@ func copyStruct(fromValue, toValue reflect.Value, opt *Option) {
 			toFieldKind := toFieldType.Kind()
 			// 1. slice to slice
 			if toFieldKind == reflect.Slice && fromFieldKind == reflect.Slice {
-				copySlice(fromFieldValue, toFieldValue, opt)
+				copySlice(toFieldValue, fromFieldValue, opt)
 				// 2. map to map
 			} else if toFieldKind == reflect.Map && fromFieldKind == reflect.Map {
-				copyMap(fromFieldValue, toFieldValue, opt)
+				copyMap(toFieldValue, fromFieldValue, opt)
 				// 3. struct to struct
 			} else if toFieldKind == reflect.Struct && fromFieldKind == reflect.Struct {
-				copyStruct(fromFieldValue, toFieldValue, opt)
+				copyStruct(toFieldValue, fromFieldValue, opt)
 			}
 		}
 	}

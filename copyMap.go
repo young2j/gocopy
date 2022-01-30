@@ -11,7 +11,7 @@ import (
 	"reflect"
 )
 
-func copyMap(fromValue, toValue reflect.Value, opt *Option) {
+func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 	fromType := indirectType(fromValue.Type())
 	toType := indirectType(toValue.Type())
 
@@ -45,12 +45,12 @@ func copyMap(fromValue, toValue reflect.Value, opt *Option) {
 					}
 					dest := indirectValue(reflect.New(fromV.Type()))
 					dest.Set(toV)
-					copySlice(fromV, dest, opt)
+					copySlice(dest, fromV, opt)
 					toValue.SetMapIndex(fromK, dest)
 				// map set kv, need to avoid nil map
 				case reflect.Map:
 					toV := reflect.MakeMapWithSize(toElemType, fromV.Len())
-					copyMap(fromV, toV, opt)
+					copyMap(toV, fromV, opt)
 					toValue.SetMapIndex(fromK, toV)
 				default:
 					toValue.SetMapIndex(fromK, fromV)
@@ -76,12 +76,12 @@ func copyMap(fromValue, toValue reflect.Value, opt *Option) {
 					}
 					dest := indirectValue(reflect.New(fromV.Type()))
 					dest.Set(toV)
-					copySlice(fromV, dest, opt)
+					copySlice(dest, fromV, opt)
 					toValue.SetMapIndex(fromK, dest)
 				// map set kv, need to avoid nil map
 				case reflect.Map:
 					toV := reflect.MakeMapWithSize(toElemType, fromV.Len())
-					copyMap(fromV, toV, opt)
+					copyMap(toV, fromV, opt)
 					toValue.SetMapIndex(fromK, toV)
 				default:
 					toValue.SetMapIndex(fromK, fromV)
@@ -98,7 +98,7 @@ func copyMap(fromValue, toValue reflect.Value, opt *Option) {
 			for kvIter.Next() {
 				fromK := kvIter.Key()
 				fromV := kvIter.Value() //slice
-				copySlice(fromV, toValue.MapIndex(fromK), opt)
+				copySlice(toValue.MapIndex(fromK), fromV, opt)
 			}
 			// b. map to map
 		} else if toElemKind == reflect.Map && fromElemKind == reflect.Map {
@@ -108,7 +108,7 @@ func copyMap(fromValue, toValue reflect.Value, opt *Option) {
 				fromV := kvIter.Value() // map
 				toV := reflect.MakeMapWithSize(toElemType, fromV.Len())
 				toValue.SetMapIndex(fromK, toV)
-				copyMap(fromV, toV, opt)
+				copyMap(toV, fromV, opt)
 			}
 			// c. struct to struct
 		} else if toElemKind == reflect.Struct && fromElemKind == reflect.Struct {
@@ -116,7 +116,7 @@ func copyMap(fromValue, toValue reflect.Value, opt *Option) {
 			for kvIter.Next() {
 				fromK := kvIter.Key()
 				fromV := kvIter.Value() // struct
-				copyStruct(fromV, toValue.MapIndex(fromK), opt)
+				copyStruct(toValue.MapIndex(fromK), fromV, opt)
 			}
 		}
 	}
