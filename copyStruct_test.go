@@ -162,7 +162,7 @@ func Test_copyStructWithOption(t *testing.T) {
 					t.Fail()
 				}
 
-				if from.Id1.Hex() != to.Id1 {
+				if from.Id1.Hex() != *to.Id1 {
 					t.Fail()
 				}
 				if from.Id2.Hex() != to.Id2 {

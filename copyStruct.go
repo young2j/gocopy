@@ -59,13 +59,25 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 			if objectIdType == "mgo" {
 				objectId, ok := fromFieldValue.Interface().(bson.ObjectId)
 				if ok {
-					toFieldValue.Set(reflect.ValueOf(objectId.Hex()))
+					if toFieldIsPtr {
+						toFV := indirectValue(reflect.New(toFieldType))
+						toFV.Set(reflect.ValueOf(objectId.Hex()))
+						toFieldValue.Set(toFV.Addr())
+					} else {
+						toFieldValue.Set(reflect.ValueOf(objectId.Hex()))
+					}
 					continue
 				}
 			} else if objectIdType == "official" {
 				objectId, ok := fromFieldValue.Interface().(primitive.ObjectID)
 				if ok {
-					toFieldValue.Set(reflect.ValueOf(objectId.Hex()))
+					if toFieldIsPtr {
+						toFV := indirectValue(reflect.New(toFieldType))
+						toFV.Set(reflect.ValueOf(objectId.Hex()))
+						toFieldValue.Set(toFV.Addr())
+					} else {
+						toFieldValue.Set(reflect.ValueOf(objectId.Hex()))
+					}
 					continue
 				}
 			}
@@ -73,11 +85,23 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 		if objectIdType, ok := opt.StringToObjectId[fromField.Name]; ok {
 			if objectIdType == "mgo" {
 				objectId := bson.ObjectIdHex(fromFieldValue.String())
-				toFieldValue.Set(reflect.ValueOf(objectId))
+				if toFieldIsPtr {
+					toFV := indirectValue(reflect.New(toFieldType))
+					toFV.Set(reflect.ValueOf(objectId))
+					toFieldValue.Set(toFV.Addr())
+				} else {
+					toFieldValue.Set(reflect.ValueOf(objectId))
+				}
 				continue
 			} else if objectIdType == "official" {
 				if objectId, err := primitive.ObjectIDFromHex(fromFieldValue.String()); err == nil {
-					toFieldValue.Set(reflect.ValueOf(objectId))
+					if toFieldIsPtr {
+						toFV := indirectValue(reflect.New(toFieldType))
+						toFV.Set(reflect.ValueOf(objectId))
+						toFieldValue.Set(toFV.Addr())
+					} else {
+						toFieldValue.Set(reflect.ValueOf(objectId))
+					}
 					continue
 				}
 			}
@@ -128,7 +152,18 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 		} else if fromFieldType.ConvertibleTo(toFieldType) {
 			convertValue := fromFieldValue.Convert(toFieldType)
 			if !opt.Append { // not append
-				toFieldValue.Set(convertValue) // set to converted value
+				if toFieldIsPtr {
+					// like string -> *string
+					if convertValue.CanAddr() {
+						toFieldValue.Set(convertValue.Addr())
+					} else {
+						convertFV := indirectValue(reflect.New(toFieldType))
+						convertFV.Set(convertValue)
+						toFieldValue.Set(convertFV.Addr())
+					}
+				} else {
+					toFieldValue.Set(convertValue) // set to converted value
+				}
 			} else { // append mode
 				fromFieldKind := fromFieldType.Kind()
 				switch fromFieldKind {
@@ -139,7 +174,18 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 				case reflect.Map:
 					copyMap(toFieldValue, convertValue, opt)
 				default:
-					toFieldValue.Set(convertValue) // set to converted value
+					if toFieldIsPtr {
+						// like string -> *string
+						if convertValue.CanAddr() {
+							toFieldValue.Set(convertValue.Addr())
+						} else {
+							convertFV := indirectValue(reflect.New(toFieldType))
+							convertFV.Set(convertValue)
+							toFieldValue.Set(convertFV.Addr())
+						}
+					} else {
+						toFieldValue.Set(convertValue) // set to converted value
+					}
 				}
 			}
 		} else {
