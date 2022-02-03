@@ -12,6 +12,8 @@ import (
 )
 
 type Perm struct {
+	anonymous1 string
+	anonymous2 int
 	Action string
 	Label  string
 }

@@ -12,46 +12,71 @@ import (
 )
 
 func copyMap(toValue, fromValue reflect.Value, opt *Option) {
-	fromType := indirectType(fromValue.Type())
-	toType := indirectType(toValue.Type())
+	fromValue = indirectValue(fromValue)
+	toValue = indirectValue(toValue)
 
+	// type
+	fromType, _ := indirectType(fromValue.Type())
+	toType, _ := indirectType(toValue.Type())
+
+	// element type, may be ptr
 	fromElemType := fromType.Elem()
 	toElemType := toType.Elem()
 
-	// avoid tomap is nil
+	// avoid tomap is nil or not append
 	if toValue.IsNil() || !opt.Append {
 		toNewMap := reflect.MakeMapWithSize(toType, fromValue.Len())
-		if toValue.CanSet() {
-			toValue.Set(toNewMap)
-		}
+		// if toValue.CanSet() {
+		toValue.Set(toNewMap)
+		// }
 	}
 
-	// 1. if can directly assign
+	// map can't directly assign or convert when append is true:
+	// because sometimes slice value type of destination also need to keep own elements
+	// eg. map[type][]int -> map[type][]int{1,2}
+
+	// handle respectively every key-value pairs:
+	// 1. if element can directly assign
 	if fromElemType.AssignableTo(toElemType) {
 		kvIter := fromValue.MapRange()
 		for kvIter.Next() {
 			fromK := kvIter.Key()
 			fromV := kvIter.Value()
-			if !opt.Append { // not append, just directly set
+			if !opt.Append {
+				// not append, just directly set
 				toValue.SetMapIndex(fromK, fromV)
-			} else { // append mode
-				fromVKind := indirectType(fromV.Type()).Kind()
-				switch fromVKind {
+			} else {
+				// append mode
+				toVType, elemIsPtr := indirectType(toElemType)
+				toVKind := toVType.Kind()
+				switch toVKind {
 				// slice append slice, need to avoid zero slice
 				case reflect.Slice:
-					toV := toValue.MapIndex(fromK)
+					toV := indirectValue(toValue.MapIndex(fromK))
 					if !toV.IsValid() { // zero slice
-						toV = indirectValue(reflect.New(fromV.Type()))
+						toV = indirectValue(reflect.New(toVType))
 					}
-					dest := indirectValue(reflect.New(fromV.Type()))
+					dest := indirectValue(reflect.New(toVType))
 					dest.Set(toV)
 					copySlice(dest, fromV, opt)
+					if elemIsPtr {
+						dest = dest.Addr()
+					}
 					toValue.SetMapIndex(fromK, dest)
+
 				// map set kv, need to avoid nil map
 				case reflect.Map:
-					toV := reflect.MakeMapWithSize(toElemType, fromV.Len())
-					copyMap(toV, fromV, opt)
-					toValue.SetMapIndex(fromK, toV)
+					toV := indirectValue(toValue.MapIndex(fromK))
+					if !toV.IsValid() { // zero slice
+						toV = indirectValue(reflect.New(toVType))
+					}
+					dest := indirectValue(reflect.New(toVType))
+					dest.Set(toV)
+					copyMap(dest, fromV, opt)
+					if elemIsPtr {
+						dest = dest.Addr()
+					}
+					toValue.SetMapIndex(fromK, dest)
 				default:
 					toValue.SetMapIndex(fromK, fromV)
 				}
@@ -63,11 +88,14 @@ func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 		for kvIter.Next() {
 			fromK := kvIter.Key()
 			fromV := kvIter.Value().Convert(toElemType)
-			if !opt.Append { // not append, just directly set converted value
+			if !opt.Append {
+				// not append, just directly set converted value
 				toValue.SetMapIndex(fromK, fromV)
-			} else { // append mode
-				fromVKind := indirectType(fromV.Type()).Kind()
-				switch fromVKind {
+			} else {
+				// append mode
+				toVType, elemIsPtr := indirectType(toElemType)
+				toVKind := toVType.Kind()
+				switch toVKind {
 				// slice append slice, need to avoid zero slice
 				case reflect.Slice:
 					toV := toValue.MapIndex(fromK)
@@ -77,12 +105,23 @@ func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 					dest := indirectValue(reflect.New(fromV.Type()))
 					dest.Set(toV)
 					copySlice(dest, fromV, opt)
+					if elemIsPtr {
+						dest = dest.Addr()
+					}
 					toValue.SetMapIndex(fromK, dest)
 				// map set kv, need to avoid nil map
 				case reflect.Map:
-					toV := reflect.MakeMapWithSize(toElemType, fromV.Len())
-					copyMap(toV, fromV, opt)
-					toValue.SetMapIndex(fromK, toV)
+					toV := indirectValue(toValue.MapIndex(fromK))
+					if !toV.IsValid() { // zero slice
+						toV = indirectValue(reflect.New(toVType))
+					}
+					dest := indirectValue(reflect.New(toVType))
+					dest.Set(toV)
+					copyMap(dest, fromV, opt)
+					if elemIsPtr {
+						dest = dest.Addr()
+					}
+					toValue.SetMapIndex(fromK, dest)
 				default:
 					toValue.SetMapIndex(fromK, fromV)
 				}
@@ -90,15 +129,30 @@ func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 		}
 	} else {
 		// 3. value kind - if can not directly assign or convert
+		fromElemType, _ := indirectType(fromElemType)
+		toElemType, elemIsPtr := indirectType(toElemType)
 		fromElemKind := fromElemType.Kind()
 		toElemKind := toElemType.Kind()
+
 		// a. slice to slice
 		if toElemKind == reflect.Slice && fromElemKind == reflect.Slice {
 			kvIter := fromValue.MapRange()
 			for kvIter.Next() {
 				fromK := kvIter.Key()
 				fromV := kvIter.Value() //slice
-				copySlice(toValue.MapIndex(fromK), fromV, opt)
+				toV := toValue.MapIndex(fromK)
+				if !toV.IsValid() {
+					toV = reflect.New(toElemType)
+				}
+				if !elemIsPtr { //toV can't set
+					dest := indirectValue(reflect.New(toElemType))
+					dest.Set(indirectValue(toV))
+					copySlice(dest, fromV, opt)
+					toValue.SetMapIndex(fromK, dest)
+				} else { // toV is ptr
+					copySlice(toV, fromV, opt)
+					toValue.SetMapIndex(fromK, toV)
+				}
 			}
 			// b. map to map
 		} else if toElemKind == reflect.Map && fromElemKind == reflect.Map {
@@ -106,9 +160,15 @@ func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 			for kvIter.Next() {
 				fromK := kvIter.Key()
 				fromV := kvIter.Value() // map
-				toV := reflect.MakeMapWithSize(toElemType, fromV.Len())
-				toValue.SetMapIndex(fromK, toV)
+				toV := toValue.MapIndex(fromK)
+				if !toV.IsValid() {
+					toV = reflect.New(toElemType)
+				}
 				copyMap(toV, fromV, opt)
+				if !elemIsPtr {
+					toV = indirectValue(toV)
+				}
+				toValue.SetMapIndex(fromK, toV)
 			}
 			// c. struct to struct
 		} else if toElemKind == reflect.Struct && fromElemKind == reflect.Struct {
@@ -116,7 +176,15 @@ func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 			for kvIter.Next() {
 				fromK := kvIter.Key()
 				fromV := kvIter.Value() // struct
-				copyStruct(toValue.MapIndex(fromK), fromV, opt)
+				toV := toValue.MapIndex(fromK)
+				if !toV.IsValid() {
+					toV = reflect.New(toElemType)
+				}
+				copyStruct(toV, fromV, opt)
+				if !elemIsPtr {
+					toV = indirectValue(toV)
+				}
+				toValue.SetMapIndex(fromK, toV)
 			}
 		}
 	}

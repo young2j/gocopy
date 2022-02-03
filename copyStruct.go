@@ -14,8 +14,11 @@ import (
 )
 
 func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
-	fromType := indirectType(fromValue.Type())
-	toType := indirectType(toValue.Type())
+	fromValue = indirectValue(fromValue)
+	toValue = indirectValue(toValue)
+	// type
+	fromType, _ := indirectType(fromValue.Type())
+	toType, _ := indirectType(toValue.Type())
 
 	// handle every struct field
 	fromFields := deepFields(fromType)
@@ -35,11 +38,15 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 		}
 
 		fromFieldValue := indirectValue(fromValue.FieldByName(fromField.Name))
+		// toFieldValue := indirectValue(toValue).FieldByName(toField.Name)
 		toFieldValue := toValue.FieldByName(toField.Name)
 
+		fromFieldType, _ := indirectType(fromField.Type)
+		toFieldType, toFieldIsPtr := indirectType(toField.Type)
+
 		// pointer value like *string *int
-		if toFieldValue.Kind() == reflect.Ptr && toFieldValue.IsNil() {
-			toNewValue := reflect.New(indirectType(toField.Type))
+		if toFieldIsPtr && toFieldValue.IsNil() {
+			toNewValue := reflect.New(toFieldType)
 			toFieldValue.Set(toNewValue)
 		}
 
@@ -76,13 +83,11 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 			}
 		}
 
-		fromFieldType := indirectType(fromField.Type)
-		toFieldType := indirectType(toField.Type)
 		// can direct assign
 		// 可直接赋值拷贝
 		if fromFieldType.AssignableTo(toFieldType) {
 			if !opt.Append { // not append
-				if toFieldValue.Kind() == reflect.Ptr {
+				if toFieldIsPtr {
 					// like string -> *string
 					if fromFieldValue.CanAddr() {
 						toFieldValue.Set(fromFieldValue.Addr())
@@ -104,7 +109,7 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 				case reflect.Map:
 					copyMap(toFieldValue, fromFieldValue, opt)
 				default:
-					if toFieldValue.Kind() == reflect.Ptr {
+					if toFieldIsPtr {
 						// like string -> *string
 						if fromFieldValue.CanAddr() {
 							toFieldValue.Set(fromFieldValue.Addr())

@@ -18,9 +18,9 @@ go get -u github.com/young2j/gocopy@latest
 * `Copy(to, from interface{})`
 * `CopyWithOption(to,from interface{},opt *Option)`
 
-> Note: The arg `to` must be a reference value(usually `&to`), otherwise copy maybe fail. 
+> Note: The arg `to` must be a reference value(usually `&to`), or copy maybe fail. 
 
-see also `/example`
+see more  at [`/example`](https://github.com/young2j/gocopy/tree/master/example)
 
 define source types as follows:
 
@@ -332,11 +332,11 @@ goarch: amd64
 pkg: github.com/young2j/gocopy
 cpu: Intel(R) Core(TM) i5-1038NG7 CPU @ 2.00GHz
 BenchmarkCopy
-BenchmarkCopy-4     	  154180	      7417 ns/op	    4928 B/op	      62 allocs/op
+BenchmarkCopy-4     	  122139	      8884 ns/op	    5592 B/op	      81 allocs/op
 BenchmarkCopier
-BenchmarkCopier-4   	   85539	     13793 ns/op	   11216 B/op	     108 allocs/op
+BenchmarkCopier-4   	   62940	     18695 ns/op	   14640 B/op	     166 allocs/op
 PASS
-ok  	github.com/young2j/gocopy	2.674s
+ok  	github.com/young2j/gocopy	4.999s
 ```
 
 

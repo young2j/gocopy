@@ -15,15 +15,17 @@ func indirectValue(reflectValue reflect.Value) reflect.Value {
 	return reflectValue
 }
 
-func indirectType(reflectType reflect.Type) reflect.Type {
+func indirectType(reflectType reflect.Type) (reflect.Type, bool) {
+	isPtr := false
 	for reflectType.Kind() == reflect.Ptr {
 		reflectType = reflectType.Elem()
+		isPtr = true
 	}
-	return reflectType
+	return reflectType, isPtr
 }
 
 func deepFields(reflectType reflect.Type) []reflect.StructField {
-	if reflectType = indirectType(reflectType); reflectType.Kind() == reflect.Struct {
+	if reflectType, _ = indirectType(reflectType); reflectType.Kind() == reflect.Struct {
 		fields := make([]reflect.StructField, 0, reflectType.NumField())
 
 		for i := 0; i < reflectType.NumField(); i++ {
