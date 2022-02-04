@@ -10,7 +10,6 @@ package main
 import (
 	"fmt"
 
-	// "github.com/jinzhu/copier"
 	"github.com/globalsign/mgo/bson"
 	"github.com/young2j/gocopy"
 	"github.com/young2j/gocopy/example/model"
@@ -108,7 +107,7 @@ func main() {
 	psm1 := map[int]*[]string{1: {"a", "b", "c"}}
 	psm2 := make(map[int]*[]string)
 	gocopy.Copy(&psm2, &psm1)
-	// copier.Copy(&psm2, &psm1)
+	// copier.Copy(&psm2, &psm1) // fail
 	fmt.Printf("ptr slice map-> psm2: %#v\n", psm2)
 
 	// 2.2 from ptr slice map
@@ -120,13 +119,14 @@ func main() {
 	// 2.3 to ptr slice map
 	psm2 = make(map[int]*[]string)
 	gocopy.Copy(&psm2, &sm1)
-	// copier.Copy(&psm2, &sm1)
+	// copier.Copy(&psm2, &sm1) // fail
 	fmt.Printf("to ptr slice map-> psm2: %#v\n", psm2)
 
 	// 3. map map
 	mm1 := map[string]map[string]int{"level1k": {"level2k": 1}}
 	mm2 := make(map[string]map[string]int)
 	gocopy.Copy(&mm2, &mm1)
+	// copier.Copy(&mm2, &mm1)
 	fmt.Println("==============================")
 	fmt.Printf("map map-> mm2: %v\n", mm2)
 
@@ -134,16 +134,19 @@ func main() {
 	pmm1 := map[string]*map[string]int{"level1k": {"level2k": 1}}
 	pmm2 := make(map[string]*map[string]int)
 	gocopy.Copy(&pmm2, &pmm1)
+	// copier.Copy(&pmm2, &pmm1)
 	fmt.Printf("ptr map map-> pmm2: %v\n", pmm2)
 
 	// 3.2 from ptr map map
 	mm2 = make(map[string]map[string]int)
 	gocopy.Copy(&mm2, &pmm1)
+	// copier.Copy(&mm2, &pmm1)
 	fmt.Printf("from ptr map map-> mm2: %v\n", mm2)
 
 	// 3.3 to ptr map map
 	pmm2 = make(map[string]*map[string]int)
 	gocopy.Copy(&pmm2, &mm1)
+	// copier.Copy(&pmm2, &mm1)
 	fmt.Printf("to ptr map map-> pmm2: %v\n", pmm2)
 
 	// 3. struct map
@@ -292,7 +295,7 @@ func main() {
 	gocopy.CopyWithOption(&amm2, &amm1, &opts)
 	fmt.Println("==============================")
 	fmt.Printf("append map map-> amm2: %#v\n", amm2)
-	
+
 	// 6.1 append map ptr map
 	apmm1 := map[string]*map[string]int{"level1k": {"level2k": 1}}
 	apmm2 := map[string]*map[string]int{"level1k": {"level2k_": 2}}
@@ -307,7 +310,7 @@ func main() {
 	apmm2 = map[string]*map[string]int{"level1k": {"level2k_": 2}}
 	gocopy.CopyWithOption(&apmm2, &amm1, &opts)
 	fmt.Printf("append to map ptr map-> apmm2: %#v\n", apmm2)
-	
+
 	// 7. append map struct
 	amst1 := map[string]model.Perm{"perm1": {Action: "PUT", Label: "rest-put-method"}}
 	amst2 := map[string]types.Perm{"perm2": {Action: "GET", Label: "rest-get-method"}}
@@ -383,7 +386,7 @@ func main() {
 	gocopy.CopyWithOption(&to, from, option)
 	fmt.Println("==============================")
 	fmt.Println("objectId to string and vice versa->")
-	fmt.Printf("from.Id1: %v to.Id1: %v \n", from.Id1, to.Id1)
+	fmt.Printf("from.Id1: %v to.Id1: %v \n", from.Id1, *to.Id1)
 	fmt.Printf("from.Id2: %v to.Id2: %v \n", from.Id2, to.Id2)
 	fmt.Printf("from.Id1Hex: %v to.Id1Hex: %v \n", from.Id1Hex, to.Id1Hex)
 	fmt.Printf("from.Id2Hex: %v to.Id2Hex: %v \n", from.Id2Hex, to.Id2Hex)

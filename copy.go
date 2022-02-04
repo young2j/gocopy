@@ -22,9 +22,6 @@ func Copy(to, from interface{}) {
 }
 
 func CopyWithOption(to, from interface{}, opt *Option) {
-	// dereference ptr value
-	// fromValue := indirectValue(reflect.ValueOf(from))
-	// toValue := indirectValue(reflect.ValueOf(to))
 	fromValue := reflect.ValueOf(from)
 	toValue := reflect.ValueOf(to)
 
@@ -32,6 +29,7 @@ func CopyWithOption(to, from interface{}, opt *Option) {
 	toType, _ := indirectType(reflect.TypeOf(to))
 	fromKind := fromType.Kind()
 	toKind := toType.Kind()
+
 	// 1. slice to slice
 	if toKind == reflect.Slice && fromKind == reflect.Slice {
 		copySlice(toValue, fromValue, opt)
