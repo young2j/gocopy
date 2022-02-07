@@ -22,6 +22,7 @@ func main() {
 	// 1. simple slice
 	s1 := []int{3, 4, 5}
 	s2 := make([]int, 0)
+	gocopy.Copy(&s2, nil)
 	gocopy.Copy(&s2, &s1)
 	// copier.Copy(&s2, &s1)
 	fmt.Println("==============================")
