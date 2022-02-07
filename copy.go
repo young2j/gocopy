@@ -22,6 +22,10 @@ func Copy(to, from interface{}) {
 }
 
 func CopyWithOption(to, from interface{}, opt *Option) {
+	// avoid copy from nil
+	if from == nil {
+		return
+	}
 	fromValue := reflect.ValueOf(from)
 	toValue := reflect.ValueOf(to)
 
