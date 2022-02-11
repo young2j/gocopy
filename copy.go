@@ -15,6 +15,8 @@ type Option struct {
 	ObjectIdToString map[string]string // eg. {"Id": "mgo"}
 	StringToObjectId map[string]string // eg. {"Id": "official"}
 	Append           bool
+	TimeToString     map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
+	StringToTime     map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
 }
 
 func Copy(to, from interface{}) {

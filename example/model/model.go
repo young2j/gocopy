@@ -8,6 +8,8 @@
 package model
 
 import (
+	"time"
+
 	"github.com/globalsign/mgo/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -23,6 +25,8 @@ type EmbedFields struct {
 }
 
 type AccessRolePerms struct {
+	CreatedAt  time.Time
+	UpdatedAt  string
 	Id1     bson.ObjectId
 	Id2     primitive.ObjectID
 	Id1Hex  string

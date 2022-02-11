@@ -8,6 +8,7 @@ package gocopy
 
 import (
 	"testing"
+	"time"
 
 	"github.com/globalsign/mgo/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -104,6 +105,7 @@ func Test_copyStruct(t *testing.T) {
 						t.Fail()
 					}
 				}
+
 			}
 		})
 	}
@@ -123,12 +125,14 @@ func Test_copyStructWithOption(t *testing.T) {
 			name: "copystruct",
 			args: args{
 				from: AccessRolePerms1{
-					Id1:     bson.NewObjectId(),
-					Id2:     primitive.NewObjectID(),
-					Id1Hex:  "61f04828eb37b662c8f3b085",
-					Id2Hex:  "61f04828eb37b662c8f3b085",
-					Actions: []string{"PUT", "DELETE"},
-					From:    "fromtofield",
+					Id1:       bson.NewObjectId(),
+					Id2:       primitive.NewObjectID(),
+					Id1Hex:    "61f04828eb37b662c8f3b085",
+					Id2Hex:    "61f04828eb37b662c8f3b085",
+					Actions:   []string{"PUT", "DELETE"},
+					From:      "fromtofield",
+					CreatedAt: time.Now(),
+					UpdatedAt: "2022/01/01",
 				},
 				to: AccessRolePerms2{
 					Actions: []string{"GET", "POST"},
@@ -138,6 +142,8 @@ func Test_copyStructWithOption(t *testing.T) {
 					StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
 					Append:           true,
 					NameFromTo:       map[string]string{"From": "To"},
+					StringToTime:     map[string]map[string]string{"UpdatedAt": {"loc": "Asia/Shanghai", "layout": "2006/01/02"}},
+					TimeToString:     map[string]map[string]string{"CreatedAt": nil},
 				},
 			},
 		},
@@ -186,6 +192,16 @@ func Test_copyStructWithOption(t *testing.T) {
 					if actions[i] != v {
 						t.Fail()
 					}
+				}
+
+				fromTimeStr := from.CreatedAt.Format("2006-01-02 15:04:05")
+				if fromTimeStr != to.CreatedAt {
+					t.Fail()
+				}
+
+				toTimeStr := to.UpdatedAt.Format("2006/01/02")
+				if toTimeStr != from.UpdatedAt {
+					t.Fail()
 				}
 			}
 		})

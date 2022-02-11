@@ -8,9 +8,15 @@ package gocopy
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/globalsign/mgo/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+var (
+	defaultTimeLoc    = "Asia/Shanghai"
+	defaultTimeLayout = "2006-01-02 15:04:05"
 )
 
 func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
@@ -105,6 +111,78 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 					continue
 				}
 			}
+		}
+
+		// specially handle time.Time to string and vice versa
+		if timeFieldMap, ok := opt.TimeToString[fromField.Name]; ok {
+			timeString := ""
+			if timeFieldMap == nil {
+				location, err := time.LoadLocation(defaultTimeLoc)
+				if err != nil {
+					panic(err)
+				}
+				timeString = fromFieldValue.Interface().(time.Time).In(location).Format(defaultTimeLayout)
+			} else {
+				loc, ok := timeFieldMap["loc"]
+				if !ok {
+					loc = defaultTimeLoc
+				}
+				layout, ok := timeFieldMap["layout"]
+				if !ok {
+					layout = defaultTimeLayout
+				}
+				location, err := time.LoadLocation(loc)
+				if err != nil {
+					panic(err)
+				}
+				timeString = fromFieldValue.Interface().(time.Time).In(location).Format(layout)
+			}
+			if toFieldIsPtr {
+				toFV := indirectValue(reflect.New(toFieldType))
+				toFV.Set(reflect.ValueOf(timeString))
+				toFieldValue.Set(toFV.Addr())
+			} else {
+				toFieldValue.Set(reflect.ValueOf(timeString))
+			}
+			continue
+		}
+		if stringFieldMap, ok := opt.StringToTime[fromField.Name]; ok {
+			timeTime := time.Now()
+			if stringFieldMap == nil {
+				location, err := time.LoadLocation(defaultTimeLoc)
+				if err != nil {
+					panic(err)
+				}
+				timeTime, err = time.ParseInLocation(defaultTimeLayout, fromFieldValue.Interface().(string), location)
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				loc, ok := stringFieldMap["loc"]
+				if !ok {
+					loc = defaultTimeLoc
+				}
+				layout, ok := stringFieldMap["layout"]
+				if !ok {
+					layout = defaultTimeLayout
+				}
+				location, err := time.LoadLocation(loc)
+				if err != nil {
+					panic(err)
+				}
+				timeTime, err = time.ParseInLocation(layout, fromFieldValue.Interface().(string), location)
+				if err != nil {
+					panic(err)
+				}
+			}
+			if toFieldIsPtr {
+				toFV := indirectValue(reflect.New(toFieldType))
+				toFV.Set(reflect.ValueOf(timeTime))
+				toFieldValue.Set(toFV.Addr())
+			} else {
+				toFieldValue.Set(reflect.ValueOf(timeTime))
+			}
+			continue
 		}
 
 		// can direct assign

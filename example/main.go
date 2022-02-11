@@ -9,6 +9,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/globalsign/mgo/bson"
 	"github.com/young2j/gocopy"
@@ -391,4 +392,21 @@ func main() {
 	fmt.Printf("from.Id2: %v to.Id2: %v \n", from.Id2, to.Id2)
 	fmt.Printf("from.Id1Hex: %v to.Id1Hex: %v \n", from.Id1Hex, to.Id1Hex)
 	fmt.Printf("from.Id2Hex: %v to.Id2Hex: %v \n", from.Id2Hex, to.Id2Hex)
+
+	// 11. time.Time to string
+	from1 := model.AccessRolePerms{
+		CreatedAt: time.Now(),
+		UpdatedAt: "2022/02/11 15:04:05",
+	}
+	to1 := types.AccessRolePerms{}
+	option1 := gocopy.Option{
+		// TimeToString: map[string]map[string]string{"CreatedAt": nil},
+		// StringToTime: map[string]map[string]string{"UpdatedAt": nil},
+		TimeToString: map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
+		StringToTime: map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02 15:04:05"}},
+	}
+	gocopy.CopyWithOption(&to1, from1, &option1)
+	fmt.Println("==============================")
+	fmt.Printf("time.Time to string-> to1.CreatedAt: %v\n", to1.CreatedAt)
+	fmt.Printf("string to time.Time-> to1.UpdatedAt: %v\n", to1.UpdatedAt)
 }

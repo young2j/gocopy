@@ -8,6 +8,7 @@ package gocopy
 
 import (
 	"testing"
+	"time"
 
 	"github.com/globalsign/mgo/bson"
 	"github.com/jinzhu/copier"
@@ -43,20 +44,24 @@ type AccessRolePerms1 struct {
 	PermMap map[string]*Perm1
 	From    string
 	EmbedFields
+	CreatedAt time.Time
+	UpdatedAt string
 }
 
 type AccessRolePerms2 struct {
-	Id1     *string
-	Id2     string
-	Id1Hex  bson.ObjectId
-	Id2Hex  primitive.ObjectID
-	Role    *string
-	Roll    *int
-	Actions []string
-	Perms   []*Perm2
-	PermMap map[string]*Perm2
-	To      []byte
-	EmbedF1 string
+	Id1       *string
+	Id2       string
+	Id1Hex    bson.ObjectId
+	Id2Hex    primitive.ObjectID
+	Role      *string
+	Roll      *int
+	Actions   []string
+	Perms     []*Perm2
+	PermMap   map[string]*Perm2
+	To        []byte
+	EmbedF1   string
+	CreatedAt string
+	UpdatedAt time.Time
 }
 
 func BenchmarkCopy(b *testing.B) {
