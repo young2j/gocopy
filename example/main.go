@@ -409,4 +409,52 @@ func main() {
 	fmt.Println("==============================")
 	fmt.Printf("time.Time to string-> to1.CreatedAt: %v\n", to1.CreatedAt)
 	fmt.Printf("string to time.Time-> to1.UpdatedAt: %v\n", to1.UpdatedAt)
+
+	fromst := model.AccessRolePerms{
+		CreatedAt: time.Now(),
+		UpdatedAt: "2022/02/16",
+		Id1:       bson.NewObjectId(),
+		Id2:       primitive.NewObjectID(),
+		Id1Hex:    bson.NewObjectId().Hex(),
+		Id2Hex:    primitive.NewObjectID().Hex(),
+		Role:      "copystruct2map",
+		Roll:      &roll,
+		From:      "From",
+		Actions:   []string{"PUT", "DELETE"},
+		Perms:     []*model.Perm{{Action: "PUT", Label: "rest-put-method"}},
+		PermMap:   map[string]*model.Perm{"delete": {Action: "DELETE", Label: "rest-delete-method"}},
+	}
+	// toBM := mbson.M{}
+	toBM := bson.M{}
+	// toBM := make(map[interface{}]interface{})
+	// v := []string{"GET"}
+	// toBM := map[interface{}]interface{}{
+	// 	"actions": &v,
+	// 	"permMap": map[string]*model.Perm{"put": {Action: "PUT", Label: "rest-put-method"}},
+	// }
+	// gocopy.Copy(&toBM, from)
+	gocopy.CopyWithOption(&toBM, fromst, &gocopy.Option{
+		Append:           true,
+		NameFromTo:       map[string]string{"From": "to", "Id1": "_id"},
+		ObjectIdToString: map[string]string{"Id1": "mgo", "Id2": "official"},       // Id1: bson.ObjectId, Id2: primitive.ObjectId
+		StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
+		TimeToString:     map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
+		StringToTime:     map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02"}},
+	})
+	fmt.Println("==============================")
+	fmt.Println("copy struct to map->")
+	fmt.Printf("toBM[\"createdAt\"]: %v\n", toBM["createdAt"])
+	fmt.Printf("toBM[\"updatedAt\"]: %v\n", toBM["updatedAt"])
+	fmt.Printf("toBM[\"id1\"]: %v\n", toBM["id1"])
+	fmt.Printf("toBM[\"id2\"]: %v\n", toBM["id2"])
+	fmt.Printf("toBM[\"_id\"]: %v\n", toBM["_id"])
+	fmt.Printf("toBM[\"id1Hex\"]: %v\n", toBM["id1Hex"])
+	fmt.Printf("toBM[\"id2Hex\"]: %v\n", toBM["id2Hex"])
+	fmt.Printf("toBM[\"role\"]: %v\n", toBM["role"])
+	fmt.Printf("toBM[\"roll\"]: %v\n", *toBM["roll"].(*int))
+	fmt.Printf("toBM[\"to\"]: %v\n", toBM["to"])
+	fmt.Printf("toBM[\"actions\"]: %v\n", toBM["actions"])
+	fmt.Printf("toBM[\"perms\"]: %#v\n", toBM["perms"])
+	fmt.Printf("toBM[\"permMap\"]: %#v\n", toBM["permMap"])
+	fmt.Printf("toBM: %v\n", toBM)
 }

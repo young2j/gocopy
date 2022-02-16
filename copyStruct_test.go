@@ -105,7 +105,6 @@ func Test_copyStruct(t *testing.T) {
 						t.Fail()
 					}
 				}
-
 			}
 		})
 	}

@@ -2,8 +2,10 @@
 * copy slice to slice by type
 * copy map to map by type
 * copy struct to struct by field name
+* copy struct to map
 * support append mode
 * support copy bson.ObjectId to string and vice versa
+* support copy time.Time to string and vice versa
 
 # Installation
 
@@ -161,6 +163,8 @@ stm2: map[perm1:{POST rest-post-method}]
 
 ### Copy struct
 
+#### struct to struct
+
 ```go
 // 4. struct to struct
 roll := 100
@@ -196,6 +200,69 @@ st2.Roll: 100
 st2.Actions: [GET POST]
 Perms: &types.Perm{Action:"GET", Label:"rest-get-method"}
 PermMap k:perm v:&types.Perm{Action:"PUT", Label:"rest-put-method"}
+```
+
+#### struct to map/bson.M
+
+```go
+fromst := model.AccessRolePerms{
+  CreatedAt: time.Now(),
+  UpdatedAt: "2022/02/16",
+  Id1:       bson.NewObjectId(),
+  Id2:       primitive.NewObjectID(),
+  Id1Hex:    bson.NewObjectId().Hex(),
+  Id2Hex:    primitive.NewObjectID().Hex(),
+  Role:      "copystruct2map",
+  Roll:      &roll,
+  From:      "From",
+  Actions:   []string{"PUT", "DELETE"},
+  Perms:     []*model.Perm{{Action: "PUT", Label: "rest-put-method"}},
+  PermMap:   map[string]*model.Perm{"delete": {Action: "DELETE", Label: "rest-delete-method"}},
+}
+toBM := bson.M{}
+// toBM := make(map[interface{}]interface{})
+gocopy.CopyWithOption(&toBM, fromst, &gocopy.Option{
+  Append:           true,
+  NameFromTo:       map[string]string{"From": "to", "Id1": "_id"},
+  // Id1: bson.ObjectId, Id2: primitive.ObjectId
+  ObjectIdToString: map[string]string{"Id1": "mgo", "Id2": "official"},       
+  // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
+  StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, 
+  TimeToString:     map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
+  StringToTime:     map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02"}},
+  // ToCase: "LowerCamel", //default
+})
+fmt.Println("==============================")
+fmt.Printf("toBM[\"createdAt\"]: %v\n", toBM["createdAt"])
+fmt.Printf("toBM[\"updatedAt\"]: %v\n", toBM["updatedAt"])
+fmt.Printf("toBM[\"id1\"]: %v\n", toBM["id1"])
+fmt.Printf("toBM[\"id2\"]: %v\n", toBM["id2"])
+fmt.Printf("toBM[\"_id\"]: %v\n", toBM["_id"])
+fmt.Printf("toBM[\"id1Hex\"]: %v\n", toBM["id1Hex"])
+fmt.Printf("toBM[\"id2Hex\"]: %v\n", toBM["id2Hex"])
+fmt.Printf("toBM[\"role\"]: %v\n", toBM["role"])
+fmt.Printf("toBM[\"roll\"]: %v\n", *toBM["roll"].(*int))
+fmt.Printf("toBM[\"to\"]: %v\n", toBM["to"])
+fmt.Printf("toBM[\"actions\"]: %v\n", toBM["actions"])
+fmt.Printf("toBM[\"perms\"]: %#v\n", toBM["perms"])
+fmt.Printf("toBM[\"permMap\"]: %#v\n", toBM["permMap"])
+```
+
+```shell
+==============================
+toBM["createdAt"]: 2022-02-16
+toBM["updatedAt"]: 2022-02-16 00:00:00 +0800 CST
+toBM["id1"]: <nil>
+toBM["id2"]: 620cc6701596053b6e00b423
+toBM["_id"]: 620cc670eb37b676ffd0d7fd
+toBM["id1Hex"]: ObjectIdHex("620cc670eb37b676ffd0d7fe")
+toBM["id2Hex"]: ObjectID("620cc6701596053b6e00b424")
+toBM["role"]: copystruct2map
+toBM["roll"]: 100
+toBM["to"]: From
+toBM["actions"]: [PUT DELETE]
+toBM["perms"]: []*model.Perm{(*model.Perm)(0xc0000a8ee0)}
+toBM["permMap"]: map[string]*model.Perm{"delete":(*model.Perm)(0xc0000a8ea0)}
 ```
 
 ## CopyWithOption
@@ -314,6 +381,32 @@ from.Id1: ObjectIdHex("61f6cdf318ef1d4366bca973") to.Id1:61f6cdf318ef1d4366bca97
 from.Id2: ObjectID("61f6cdf3cc541c1bc35a41fc") to.Id2:61f6cdf3cc541c1bc35a41fc
 from.Id1Hex: 61f04828eb37b662c8f3b085 to.Id1Hex:ObjectIdHex("61f04828eb37b662c8f3b085")
 from.Id2Hex: 61f04828eb37b662c8f3b085 to.Id2Hex:ObjectID("61f04828eb37b662c8f3b085")
+```
+
+### Time.Time and String
+
+```go
+from := model.AccessRolePerms{
+  CreatedAt: time.Now(),
+  UpdatedAt: "2022/02/11 15:04:05",
+}
+to := types.AccessRolePerms{}
+option := gocopy.Option{
+  // TimeToString: map[string]map[string]string{"CreatedAt": nil},
+  // StringToTime: map[string]map[string]string{"UpdatedAt": nil},
+  TimeToString: map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
+  StringToTime: map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02 15:04:05"}},
+}
+gocopy.CopyWithOption(&to, from, &option)
+fmt.Println("==============================")
+fmt.Printf("time.Time to string-> to.CreatedAt: %v\n", to.CreatedAt)
+fmt.Printf("string to time.Time-> to.UpdatedAt: %v\n", to.UpdatedAt)
+```
+
+```shell
+==============================
+time.Time to string-> to.CreatedAt: 2022-02-16
+string to time.Time-> to.UpdatedAt: 2022-02-11 15:04:05 +0800 CST
 ```
 
 # Related repository

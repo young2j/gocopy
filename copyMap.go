@@ -67,7 +67,7 @@ func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 				// map set kv, need to avoid nil map
 				case reflect.Map:
 					toV := indirectValue(toValue.MapIndex(fromK))
-					if !toV.IsValid() { // zero slice
+					if !toV.IsValid() { // zero map
 						toV = indirectValue(reflect.New(toVType))
 					}
 					dest := indirectValue(reflect.New(toVType))
