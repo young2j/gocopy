@@ -2,7 +2,7 @@
 * copy slice to slice by type
 * copy map to map by type
 * copy struct to struct by field name
-* copy struct to map
+* copy struct to map(support field name case and ignore zero value)
 * support append mode
 * support copy bson.ObjectId to string and vice versa
 * support copy time.Time to string and vice versa

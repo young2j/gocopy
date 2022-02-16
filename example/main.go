@@ -440,6 +440,7 @@ func main() {
 		StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
 		TimeToString:     map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
 		StringToTime:     map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02"}},
+		IgnoreZero: true,
 	})
 	fmt.Println("==============================")
 	fmt.Println("copy struct to map->")

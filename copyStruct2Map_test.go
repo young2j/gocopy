@@ -170,6 +170,7 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 					StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
 					TimeToString:     map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
 					StringToTime:     map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02"}},
+					IgnoreZero:       true,
 				},
 			},
 		},
@@ -228,9 +229,6 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 				if *to["roll"].(*int) != *from.Roll {
 					t.Fail()
 				}
-				if to["embedF1"] != from.EmbedF1 {
-					t.Fail()
-				}
 
 				if len(to["actions"].([]string)) != len(from.Actions) {
 					t.Fail()
@@ -265,6 +263,10 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 					if v.Label != toPerm.Label {
 						t.Fail()
 					}
+				}
+
+				if _, ok := to["embedF1"]; ok {
+					t.Fail()
 				}
 			}
 		})

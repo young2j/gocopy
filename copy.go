@@ -20,7 +20,8 @@ type Option struct {
 	TimeToString     map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
 	StringToTime     map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
 	// only for struct to map
-	ToCase string // eg. "LowerCamel"(default)|"Camel"|"Snake"|"ScreamingSnake"|"Kebab"|"ScreamingKebab"
+	ToCase     string // eg. "LowerCamel"(default)|"Camel"|"Snake"|"ScreamingSnake"|"Kebab"|"ScreamingKebab"
+	IgnoreZero bool
 }
 
 func Copy(to, from interface{}) {

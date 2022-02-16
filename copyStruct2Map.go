@@ -57,13 +57,18 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 		// target field name
 		toKey := reflect.ValueOf(toFieldName)
 
+		// whether ignore zero value
+		fromFV := fromValue.FieldByName(fromField.Name)
+		if fromFV.IsZero() && opt.IgnoreZero {
+			continue
+		}
 		// ignore invalid source field
-		fromFieldValue := indirectValue(fromValue.FieldByName(fromField.Name))
+		fromFieldValue := indirectValue(fromFV)
 		if !fromFieldValue.IsValid() {
 			continue
 		}
 
-		fromFieldType, fromVIsPtr := indirectType(fromValue.FieldByName(fromField.Name).Type())
+		fromFieldType, fromVIsPtr := indirectType(fromFV.Type())
 		toV := indirectValue(toValue.MapIndex(toKey))
 		toVType := fromFieldType
 		toVIsPtr := fromVIsPtr
