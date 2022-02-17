@@ -423,9 +423,19 @@ func main() {
 		Actions:   []string{"PUT", "DELETE"},
 		Perms:     []*model.Perm{{Action: "PUT", Label: "rest-put-method"}},
 		PermMap:   map[string]*model.Perm{"delete": {Action: "DELETE", Label: "rest-delete-method"}},
+		Child: &model.AccessRolePerms{
+			Id1Hex: bson.NewObjectId().Hex(),
+			Role:   "embedstruct",
+		},
 	}
 	// toBM := mbson.M{}
-	toBM := bson.M{}
+	toBM := bson.M{
+		"perms": []*model.Perm{{Action: "GET", Label: "rest-get-method"}},
+		"permMap": map[string]*model.Perm{"get": {Action: "GET", Label: "rest-get-method"}},
+		// "permMap": bson.M{"get": model.Perm{Action: "GET", Label: "rest-get-method"}},
+		// "child": map[string]string{"from":"child"},
+		"child": &model.AccessRolePerms{From: "child"},
+	}
 	// toBM := make(map[interface{}]interface{})
 	// v := []string{"GET"}
 	// toBM := map[interface{}]interface{}{
@@ -440,7 +450,7 @@ func main() {
 		StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
 		TimeToString:     map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
 		StringToTime:     map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02"}},
-		IgnoreZero: true,
+		IgnoreZero:       true,
 	})
 	fmt.Println("==============================")
 	fmt.Println("copy struct to map->")
@@ -457,5 +467,6 @@ func main() {
 	fmt.Printf("toBM[\"actions\"]: %v\n", toBM["actions"])
 	fmt.Printf("toBM[\"perms\"]: %#v\n", toBM["perms"])
 	fmt.Printf("toBM[\"permMap\"]: %#v\n", toBM["permMap"])
-	fmt.Printf("toBM: %v\n", toBM)
+	fmt.Printf("toBM[\"child\"]: %#v\n", toBM["child"])
+	// fmt.Printf("toBM: %v\n", toBM)
 }

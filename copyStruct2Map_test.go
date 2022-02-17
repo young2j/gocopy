@@ -42,8 +42,12 @@ func Test_copyStruct2Map(t *testing.T) {
 					Actions:   []string{"PUT", "DELETE"},
 					Perms:     []*Perm1{{Action: "PUT", Label: "rest-put-method"}},
 					PermMap:   map[string]*Perm1{"delete": {Action: "DELETE", Label: "rest-delete-method"}},
+					Child: &AccessRolePerms1{
+						Id1Hex: "620b7c65eb37b696fe9eef25",
+						Role:   "embedstruct",
+					},
 				},
-				to: make(map[interface{}]interface{}),
+				to: bson.M{},
 			},
 		},
 	}
@@ -55,11 +59,12 @@ func Test_copyStruct2Map(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
-				to, ok := tt.args.to.(map[interface{}]interface{})
+				to, ok := tt.args.to.(bson.M)
 				if !ok {
 					t.Fail()
 				}
 				Copy(&to, from)
+
 				if to["createdAt"] != from.CreatedAt {
 					t.Fail()
 				}
@@ -104,30 +109,45 @@ func Test_copyStruct2Map(t *testing.T) {
 					}
 				}
 
-				if len(to["perms"].([]*Perm1)) != len(from.Perms) {
+				if len(to["perms"].([]*bson.M)) != len(from.Perms) {
 					t.Fail()
 				}
-				for i := 0; i < len(to["perms"].([]*Perm1)); i++ {
-					if to["perms"].([]*Perm1)[i].Action != from.Perms[i].Action {
+				for i := 0; i < len(to["perms"].([]*bson.M)); i++ {
+					if (*to["perms"].([]*bson.M)[i])["action"] != from.Perms[i].Action {
 						t.Fail()
 					}
-					if to["perms"].([]*Perm1)[i].Label != from.Perms[i].Label {
+					if (*to["perms"].([]*bson.M)[i])["label"] != from.Perms[i].Label {
 						t.Fail()
 					}
 				}
 
 				for k, v := range from.PermMap {
-					toPerm, ok := to["permMap"].(map[string]*Perm1)[k]
+					toPerm, ok := to["permMap"].(bson.M)[k]
 					if !ok {
 						t.Fail()
 						break
 					}
-					if v.Action != toPerm.Action {
+					toPermV, ok := toPerm.(*bson.M)
+					if !ok {
 						t.Fail()
 					}
-					if v.Label != toPerm.Label {
+					if v.Action != (*toPermV)["action"] {
 						t.Fail()
 					}
+					if v.Label != (*toPermV)["label"] {
+						t.Fail()
+					}
+				}
+
+				toChild, ok := to["child"].(*bson.M)
+				if !ok {
+					t.Fail()
+				}
+				if (*toChild)["id1Hex"] != "620b7c65eb37b696fe9eef25" {
+					t.Fail()
+				}
+				if (*toChild)["role"] != "embedstruct" {
+					t.Fail()
 				}
 			}
 		})
@@ -140,7 +160,19 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 		opt  *Option
 	}
 	roll := 100
-
+	targetPerms := []*map[string]interface{}{
+		{"action": "GET", "label": "rest-get-method"},
+		{"action": "PUT", "label": "rest-put-method"},
+	}
+	targetPermMap := map[string]*map[string]interface{}{
+		"get": {"action": "GET", "label": "rest-get-method"},
+		"put": {"action": "PUT", "label": "rest-put-method"},
+	}
+	targetChild := &map[string]interface{}{
+		"to":     "child",
+		"id1Hex": "620b7c65eb37b696fe9eef25",
+		"role":   "embedstruct",
+	}
 	tests := []struct {
 		name string
 		args args
@@ -160,9 +192,17 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 					From:      "From",
 					Actions:   []string{"PUT", "DELETE"},
 					Perms:     []*Perm1{{Action: "PUT", Label: "rest-put-method"}},
-					PermMap:   map[string]*Perm1{"delete": {Action: "DELETE", Label: "rest-delete-method"}},
+					PermMap:   map[string]*Perm1{"put": {Action: "PUT", Label: "rest-put-method"}},
+					Child: &AccessRolePerms1{
+						Id1Hex: "620b7c65eb37b696fe9eef25",
+						Role:   "embedstruct",
+					},
 				},
-				to: make(map[interface{}]interface{}),
+				to: map[interface{}]interface{}{
+					"perms":   []*Perm1{{Action: "GET", Label: "rest-get-method"}},
+					"permMap": map[interface{}]*Perm1{"get": {Action: "GET", Label: "rest-get-method"}},
+					"child":   &AccessRolePerms1{From: "child"},
+				},
 				opt: &Option{
 					Append:           true,
 					NameFromTo:       map[string]string{"From": "to", "Id1": "_id"},
@@ -187,6 +227,7 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
+
 				CopyWithOption(&to, from, tt.args.opt)
 
 				loc, err := time.LoadLocation("America/New_York")
@@ -239,32 +280,69 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 					}
 				}
 
-				if len(to["perms"].([]*Perm1)) != len(from.Perms) {
+				toPerms, ok := to["perms"].([]*map[interface{}]interface{})
+				if !ok {
 					t.Fail()
 				}
-				for i := 0; i < len(to["perms"].([]*Perm1)); i++ {
-					if to["perms"].([]*Perm1)[i].Action != from.Perms[i].Action {
+				if len(toPerms) != len(targetPerms) {
+					t.Fail()
+				}
+				for i := 0; i < len(toPerms); i++ {
+
+					if (*toPerms[i])["action"] != (*targetPerms[i])["action"] {
 						t.Fail()
 					}
-					if to["perms"].([]*Perm1)[i].Label != from.Perms[i].Label {
+					if (*toPerms[i])["label"] != (*targetPerms[i])["label"] {
 						t.Fail()
 					}
 				}
 
-				for k, v := range from.PermMap {
-					toPerm, ok := to["permMap"].(map[string]*Perm1)[k]
+				toPermMap, ok := to["permMap"].(map[interface{}]interface{})
+				if !ok {
+					t.Fail()
+				}
+				if len(toPermMap) != len(targetPermMap) {
+					t.Fail()
+				}
+				for k, v := range targetPermMap {
+					toPermV, ok := toPermMap[k]
 					if !ok {
 						t.Fail()
-						break
 					}
-					if v.Action != toPerm.Action {
+
+					toPermV_, ok := toPermV.(*map[interface{}]interface{})
+					if !ok {
 						t.Fail()
 					}
-					if v.Label != toPerm.Label {
-						t.Fail()
+					for kk, vv := range *v {
+						toPermVV, ok := (*toPermV_)[kk]
+						if !ok {
+							t.Fail()
+						}
+						if toPermVV != vv {
+							t.Fail()
+						}
 					}
 				}
 
+				toChild, ok := to["child"].(*map[interface{}]interface{})
+				if !ok {
+					t.Fail()
+				}
+				for k, v := range *targetChild {
+					toChildV, ok := (*toChild)[k]
+					if !ok {
+						t.Fail()
+					}
+					if (k == "to" || k == "role") && toChildV != v {
+						t.Fail()
+					} else if k == "id1Hex" {
+						if toChildV != bson.ObjectIdHex("620b7c65eb37b696fe9eef25") {
+							t.Fail()
+						}
+					}
+				}
+				// ignore
 				if _, ok := to["embedF1"]; ok {
 					t.Fail()
 				}

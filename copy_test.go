@@ -46,6 +46,7 @@ type AccessRolePerms1 struct {
 	EmbedFields
 	CreatedAt time.Time
 	UpdatedAt string
+	Child *AccessRolePerms1
 }
 
 type AccessRolePerms2 struct {

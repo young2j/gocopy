@@ -18,7 +18,7 @@ var (
 	defaultTimeLoc    = "Asia/Shanghai"
 	defaultTimeLayout = "2006-01-02 15:04:05"
 )
-
+// copyStruct copy struct to struct
 func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 	fromValue = indirectValue(fromValue)
 	toValue = indirectValue(toValue)

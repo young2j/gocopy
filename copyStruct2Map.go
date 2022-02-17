@@ -25,6 +25,7 @@ var caseFunc = map[string]func(s string) string{
 	"ScreamingKebab": strcase.ToScreamingKebab,
 }
 
+// copyStruct2Map copy struct to map
 func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 	fromValue = indirectValue(fromValue)
 	toValue = indirectValue(toValue)
@@ -70,6 +71,7 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 
 		fromFieldType, fromVIsPtr := indirectType(fromFV.Type())
 		toV := indirectValue(toValue.MapIndex(toKey))
+
 		toVType := fromFieldType
 		toVIsPtr := fromVIsPtr
 		if toV.IsValid() {
@@ -205,12 +207,59 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 		switch fromFieldValue.Kind() {
 		// slice to slice, need to avoid zero slice
 		case reflect.Slice:
-			if !toV.IsValid() { // zero slice
-				toV = indirectValue(reflect.New(toVType))
+			fromElemType, _ := indirectType(fromFieldType.Elem())
+			toElemType, elemIsPtr := indirectType(toVType.Elem())
+			fromElemIsStruct := fromElemType.Kind() == reflect.Struct
+			toElemIsStruct := toElemType.Kind() == reflect.Struct
+
+			targetType := toVType
+			if fromElemIsStruct || toElemIsStruct {
+				if elemIsPtr {
+					targetType = reflect.SliceOf(reflect.New(toType).Type())
+					// slice of struct to slice of map
+				} else {
+					targetType = reflect.SliceOf(toType)
+				}
 			}
-			dest := indirectValue(reflect.New(toVType))
-			dest.Set(indirectValue(reflect.ValueOf(toV.Interface())))
-			copySlice(dest, fromFieldValue, opt)
+			if !toV.IsValid() { // zero slice
+				toV = indirectValue(reflect.New(targetType))
+				// toVType is slice of struct, need to transfrom every elem to map/*map
+			} else if toElemIsStruct {
+				toSliceOfMap := indirectValue(reflect.New(targetType))
+				toV = reflect.ValueOf(toV.Interface())
+				for i := 0; i < toV.Len(); i++ {
+					if !toV.Index(i).IsValid() {
+						continue
+					}
+					toElemV := reflect.New(toType) // map
+					copyStruct2Map(toElemV, toV.Index(i), opt)
+					if !elemIsPtr {
+						toElemV = indirectValue(toElemV)
+					}
+					toSliceOfMap.Set(reflect.Append(toSliceOfMap, toElemV))
+				}
+				toV = toSliceOfMap
+			}
+
+			dest := indirectValue(reflect.New(targetType))            // slice
+			dest.Set(indirectValue(reflect.ValueOf(toV.Interface()))) // slice append slice
+
+			if !fromElemIsStruct {
+				copySlice(dest, fromFieldValue, opt)
+			} else {
+				for i := 0; i < fromFieldValue.Len(); i++ {
+					if !fromFieldValue.Index(i).IsValid() {
+						continue
+					}
+					toElemValue := reflect.New(toType) // map
+					copyStruct2Map(toElemValue, fromFieldValue.Index(i), opt)
+					if !elemIsPtr {
+						toElemValue = indirectValue(toElemValue)
+					}
+					dest.Set(reflect.Append(dest, toElemValue))
+				}
+			}
+
 			if toVIsPtr {
 				dest = dest.Addr()
 			}
@@ -218,16 +267,107 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 
 		// map set kv, need to avoid nil map
 		case reflect.Map:
+			fromElemType, _ := indirectType(fromFieldType.Elem())
+			toElemType, elemIsPtr := indirectType(toVType.Elem())
+			fromElemIsStruct := fromElemType.Kind() == reflect.Struct
+			toElemIsStruct := toElemType.Kind() == reflect.Struct
+
 			if !toV.IsValid() { // zero map
-				toV = indirectValue(reflect.New(toVType))
+				toV = indirectValue(reflect.New(toType))
+				if toV.IsNil() { // nil map
+					toNewV := reflect.MakeMapWithSize(toType, toV.Len())
+					toV.Set(toNewV)
+				}
+			} else if toElemIsStruct {
+				toMap := indirectValue(reflect.New(toType))
+				toV = reflect.ValueOf(toV.Interface())
+				if toMap.IsNil() {
+					toNewMap := reflect.MakeMapWithSize(toType, toV.Len())
+					toMap.Set(toNewMap)
+				}
+				toVIter := toV.MapRange()
+				for toVIter.Next() {
+					toVK := toVIter.Key()
+					toVV := toVIter.Value()            // struct
+					toElemValue := reflect.New(toType) // map
+					copyStruct2Map(toElemValue, toVV, opt)
+					if !elemIsPtr {
+						toElemValue = indirectValue(toElemValue)
+					}
+					toMap.SetMapIndex(toVK, toElemValue)
+				}
+				toV = toMap
 			}
-			dest := indirectValue(reflect.New(toVType))
-			dest.Set(indirectValue(reflect.ValueOf(toV.Interface())))
-			copyMap(dest, fromFieldValue, opt)
+
+			dest := indirectValue(reflect.New(toType))
+			// avoid tomap is nil
+			if dest.IsNil() {
+				toV = reflect.ValueOf(toV.Interface())
+				toNewDest := reflect.MakeMapWithSize(toType, (toV.Len() + fromFieldValue.Len()))
+				dest.Set(toNewDest)
+			}
+			toVIter := toV.MapRange()
+			for toVIter.Next() {
+				toK := toVIter.Key()
+				toV := toVIter.Value()
+				dest.SetMapIndex(toK, toV)
+			}
+
+			if !fromElemIsStruct {
+				copyMap(dest, fromFieldValue, opt)
+			} else {
+				fromKVIter := fromFieldValue.MapRange()
+				for fromKVIter.Next() {
+					fromK := fromKVIter.Key()
+					fromV := fromKVIter.Value()        // struct
+					toElemValue := reflect.New(toType) // map
+					copyStruct2Map(toElemValue, fromV, opt)
+					if !elemIsPtr {
+						toElemValue = indirectValue(toElemValue)
+					}
+					dest.SetMapIndex(fromK, toElemValue)
+				}
+			}
 			if toVIsPtr {
 				dest = dest.Addr()
 			}
 			toValue.SetMapIndex(toKey, dest)
+
+		case reflect.Struct:
+			// if time.Time field
+			_, ok := fromFieldValue.Interface().(time.Time)
+			if ok {
+				if toVIsPtr {
+					toV = indirectValue(reflect.New(toVType))
+					toV.Set(fromFieldValue)
+					toV = toV.Addr()
+					toValue.SetMapIndex(toKey, toV)
+				} else {
+					toValue.SetMapIndex(toKey, fromFieldValue)
+				}
+				continue
+			}
+			// other struct field
+			if !toV.IsValid() { // zero map
+				toV = indirectValue(reflect.New(toType))
+			} else if toVType.Kind() == reflect.Struct {
+				toNewV := reflect.New(toType) // map
+				copyStruct2Map(toNewV, reflect.ValueOf(toV.Interface()), opt)
+				toV = toNewV
+			} else if toVType.Kind() == reflect.Map {
+				toNewV := reflect.New(toType) // map
+				copyMap(toNewV, reflect.ValueOf(toV.Interface()), opt)
+				toV = toNewV
+			}
+
+			dest := indirectValue(reflect.New(toType))
+			dest.Set(indirectValue(reflect.ValueOf(toV.Interface())))
+			copyStruct2Map(dest, fromFieldValue, opt)
+			if toVIsPtr {
+				dest = dest.Addr()
+			}
+			toValue.SetMapIndex(toKey, dest)
+
 		default:
 			if toVIsPtr {
 				toV = indirectValue(reflect.New(toVType))

@@ -38,4 +38,5 @@ type AccessRolePerms struct {
 	PermMap map[string]*Perm
 	From    string
 	EmbedFields
+	Child *AccessRolePerms
 }

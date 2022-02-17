@@ -55,12 +55,7 @@ func Test_copyStruct(t *testing.T) {
 					t.Fail()
 				}
 				Copy(&to, from)
-				t.Logf("to.Role:%v from.Role: %v\n", *to.Role, from.Role)
-				t.Logf("to.Roll:%v from.Roll: %v\n", to.Roll, from.Roll)
-				t.Logf("to.EmbedF1:%v from.EmbedF1: %v\n", to.EmbedF1, from.EmbedF1)
-				t.Logf("to.Actions:%v from.Actions: %v\n", to.Actions, from.Actions)
-				t.Logf("to.Perms:%v from.Perms: %v\n", to.Perms, from.Perms)
-				t.Logf("to.PermMap:%v from.PermMap: %v\n", to.PermMap, from.PermMap)
+
 				if *to.Role != from.Role {
 					t.Fail()
 				}

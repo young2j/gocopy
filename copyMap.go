@@ -11,6 +11,7 @@ import (
 	"reflect"
 )
 
+// copyMap copy map to map
 func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 	fromValue = indirectValue(fromValue)
 	toValue = indirectValue(toValue)
