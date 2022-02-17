@@ -442,7 +442,7 @@ func main() {
 	// 	"actions": &v,
 	// 	"permMap": map[string]*model.Perm{"put": {Action: "PUT", Label: "rest-put-method"}},
 	// }
-	// gocopy.Copy(&toBM, from)
+	// gocopy.Copy(&toBM, fromst)
 	gocopy.CopyWithOption(&toBM, fromst, &gocopy.Option{
 		Append:           true,
 		NameFromTo:       map[string]string{"From": "to", "Id1": "_id"},

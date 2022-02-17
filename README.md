@@ -218,51 +218,44 @@ fromst := model.AccessRolePerms{
   Actions:   []string{"PUT", "DELETE"},
   Perms:     []*model.Perm{{Action: "PUT", Label: "rest-put-method"}},
   PermMap:   map[string]*model.Perm{"delete": {Action: "DELETE", Label: "rest-delete-method"}},
+  Child: &model.AccessRolePerms{
+    Id1Hex: bson.NewObjectId().Hex(),
+    Role:   "embedstruct",
+  },
 }
 toBM := bson.M{}
-// toBM := make(map[interface{}]interface{})
 gocopy.CopyWithOption(&toBM, fromst, &gocopy.Option{
-  Append:           true,
-  NameFromTo:       map[string]string{"From": "to", "Id1": "_id"},
-  // Id1: bson.ObjectId, Id2: primitive.ObjectId
-  ObjectIdToString: map[string]string{"Id1": "mgo", "Id2": "official"},       
-  // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
-  StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, 
-  TimeToString:     map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
-  StringToTime:     map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02"}},
-  // ToCase: "LowerCamel", //default
+  IgnoreZero:  true,
 })
 fmt.Println("==============================")
 fmt.Printf("toBM[\"createdAt\"]: %v\n", toBM["createdAt"])
 fmt.Printf("toBM[\"updatedAt\"]: %v\n", toBM["updatedAt"])
 fmt.Printf("toBM[\"id1\"]: %v\n", toBM["id1"])
 fmt.Printf("toBM[\"id2\"]: %v\n", toBM["id2"])
-fmt.Printf("toBM[\"_id\"]: %v\n", toBM["_id"])
 fmt.Printf("toBM[\"id1Hex\"]: %v\n", toBM["id1Hex"])
 fmt.Printf("toBM[\"id2Hex\"]: %v\n", toBM["id2Hex"])
 fmt.Printf("toBM[\"role\"]: %v\n", toBM["role"])
 fmt.Printf("toBM[\"roll\"]: %v\n", *toBM["roll"].(*int))
-fmt.Printf("toBM[\"to\"]: %v\n", toBM["to"])
 fmt.Printf("toBM[\"actions\"]: %v\n", toBM["actions"])
 fmt.Printf("toBM[\"perms\"]: %#v\n", toBM["perms"])
 fmt.Printf("toBM[\"permMap\"]: %#v\n", toBM["permMap"])
+fmt.Printf("toBM[\"child\"]: %#v\n", toBM["child"])
 ```
 
 ```shell
 ==============================
-toBM["createdAt"]: 2022-02-16
-toBM["updatedAt"]: 2022-02-16 00:00:00 +0800 CST
-toBM["id1"]: <nil>
-toBM["id2"]: 620cc6701596053b6e00b423
-toBM["_id"]: 620cc670eb37b676ffd0d7fd
-toBM["id1Hex"]: ObjectIdHex("620cc670eb37b676ffd0d7fe")
-toBM["id2Hex"]: ObjectID("620cc6701596053b6e00b424")
+toBM["createdAt"]: 2022-02-17 18:31:38.317398 +0800 CST m=+0.002843322
+toBM["updatedAt"]: 2022/02/16
+toBM["id1"]: ObjectIdHex("620e240aeb37b6263f59fd51")
+toBM["id2"]: ObjectID("620e240a9ca780f5f4bb7c0a")
+toBM["id1Hex"]: 620e240aeb37b6263f59fd52
+toBM["id2Hex"]: 620e240a9ca780f5f4bb7c0b
 toBM["role"]: copystruct2map
 toBM["roll"]: 100
-toBM["to"]: From
 toBM["actions"]: [PUT DELETE]
-toBM["perms"]: []*model.Perm{(*model.Perm)(0xc0000a8ee0)}
-toBM["permMap"]: map[string]*model.Perm{"delete":(*model.Perm)(0xc0000a8ea0)}
+toBM["perms"]: []*bson.M{(*bson.M)(0xc00009a290)}
+toBM["permMap"]: bson.M{"delete":(*bson.M)(0xc00009a2b0)}
+toBM["child"]: &bson.M{"id1Hex":"620e240aeb37b6263f59fd53", "role":"embedstruct"}
 ```
 
 ## CopyWithOption
