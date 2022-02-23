@@ -29,6 +29,7 @@ type AccessRolePerms struct {
 	UpdatedAt  string
 	Id1     bson.ObjectId
 	Id2     primitive.ObjectID
+	Id3     *primitive.ObjectID
 	Id1Hex  string
 	Id2Hex  string
 	Role    string

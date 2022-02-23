@@ -214,6 +214,47 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "copystruct2map-convert",
+			args: args{
+				from: AccessRolePerms1{
+					CreatedAt: time.Now(),
+					UpdatedAt: "2022/02/16",
+					Id1:       bson.NewObjectId(),
+					Id2:       primitive.NewObjectID(),
+					Id1Hex:    "61f04828eb37b662c8f3b085",
+					Id2Hex:    "61f04828eb37b662c8f3b085",
+				},
+				to: bson.M{},
+				opt: &Option{
+					Converters: map[string]func(interface{}) interface{}{
+						"CreatedAt": func(v interface{}) interface{} {
+							return v.(time.Time).Format("2006-01-02 15:04:05")
+						},
+						"UpdatedAt": func(v interface{}) interface{} {
+							t, _ := time.Parse("2006/01/02", v.(string))
+							return t
+						},
+						"Id1": func(v interface{}) interface{} {
+							return v.(bson.ObjectId).Hex()
+						},
+						"Id2": func(v interface{}) interface{} {
+							return v.(primitive.ObjectID).Hex()
+						},
+						"Id3": func(v interface{}) interface{} {
+							return v.(*primitive.ObjectID).Hex()
+						},
+						"Id1Hex": func(v interface{}) interface{} {
+							return bson.ObjectIdHex(v.(string))
+						},
+						"Id2Hex": func(v interface{}) interface{} {
+							oid, _ := primitive.ObjectIDFromHex(v.(string))
+							return oid
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -344,6 +385,40 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 				}
 				// ignore
 				if _, ok := to["embedF1"]; ok {
+					t.Fail()
+				}
+			case "copystruct2map-convert":
+				from, ok := tt.args.from.(AccessRolePerms1)
+				if !ok {
+					t.Fail()
+				}
+				to, ok := tt.args.to.(bson.M)
+				if !ok {
+					t.Fail()
+				}
+
+				CopyWithOption(&to, from, tt.args.opt)
+
+				if to["createdAt"] != from.CreatedAt.Format("2006-01-02 15:04:05") {
+					t.Fail()
+				}
+
+				if to["updatedAt"].(time.Time).Format("2006/01/02") != from.UpdatedAt {
+					t.Fail()
+				}
+
+				if to["id1"] != from.Id1.Hex() {
+					t.Fail()
+				}
+				if to["id2"] != from.Id2.Hex() {
+					t.Fail()
+				}
+
+				if to["id1Hex"].(bson.ObjectId).Hex() != from.Id1Hex {
+					t.Fail()
+				}
+
+				if to["id2Hex"].(primitive.ObjectID).Hex() != from.Id2Hex {
 					t.Fail()
 				}
 			}

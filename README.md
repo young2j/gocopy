@@ -1,11 +1,14 @@
 # Features
+
 * copy slice to slice by type
 * copy map to map by type
 * copy struct to struct by field name
-* copy struct to map(support field name case and ignore zero value)
+* copy struct to map by field name
 * support append mode
-* support copy bson.ObjectId to string and vice versa
-* support copy time.Time to string and vice versa
+* support customized convert func by field name
+  * bson.ObjectId to string and vice versa
+  * time.Time to string and vice versa
+  * ...
 
 # Installation
 
@@ -20,7 +23,7 @@ go get -u github.com/young2j/gocopy@latest
 * `Copy(to, from interface{})`
 * `CopyWithOption(to,from interface{},opt *Option)`
 
-> Note: The arg `to` must be a reference value(usually `&to`), or copy maybe fail. 
+> Note: The arg `to` must be a reference value(usually `&to`), or copy maybe fail.
 
 see more  at [`/example`](https://github.com/young2j/gocopy/tree/master/example)
 
@@ -385,6 +388,7 @@ from := model.AccessRolePerms{
 }
 to := types.AccessRolePerms{}
 option := gocopy.Option{
+  // use default layout and time location
   // TimeToString: map[string]map[string]string{"CreatedAt": nil},
   // StringToTime: map[string]map[string]string{"UpdatedAt": nil},
   TimeToString: map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
@@ -400,6 +404,72 @@ fmt.Printf("string to time.Time-> to.UpdatedAt: %v\n", to.UpdatedAt)
 ==============================
 time.Time to string-> to.CreatedAt: 2022-02-16
 string to time.Time-> to.UpdatedAt: 2022-02-11 15:04:05 +0800 CST
+```
+
+### Customize Convert Func
+
+You can also convert types time.Time and ObjectId to string or others you want.
+
+```go
+id3 := primitive.NewObjectID()
+fromst1 := model.AccessRolePerms{
+  CreatedAt: time.Now(),
+  UpdatedAt: "2022/02/16",
+  Id1:       bson.NewObjectId(),
+  Id2:       primitive.NewObjectID(),
+  Id3:       &id3,
+  Id1Hex:    bson.NewObjectId().Hex(),
+  Id2Hex:    primitive.NewObjectID().Hex(),
+}
+tost1 := types.AccessRolePerms{}
+// tom := bson.M{}
+// tom := map[string]interface{}{}
+gocopy.CopyWithOption(&tost1, fromst1, &gocopy.Option{
+  Converters: map[string]func(interface{}) interface{}{
+    "CreatedAt": func(v interface{}) interface{} {
+      return v.(time.Time).Format("2006-01-02")
+    },
+    "UpdatedAt": func(v interface{}) interface{} {
+      t, _ := time.Parse("2006/01/02", v.(string))
+      return t
+    },
+    "Id1": func(v interface{}) interface{} {
+      return v.(bson.ObjectId).Hex()
+    },
+    "Id2": func(v interface{}) interface{} {
+      return v.(primitive.ObjectID).Hex()
+    },
+    "Id3": func(v interface{}) interface{} {
+      return v.(*primitive.ObjectID).Hex()
+    },
+    "Id1Hex": func(v interface{}) interface{} {
+      return bson.ObjectIdHex(v.(string))
+    },
+    "Id2Hex": func(v interface{}) interface{} {
+      oid, _ := primitive.ObjectIDFromHex(v.(string))
+      return oid
+    },
+  },
+})
+fmt.Println("============================")
+fmt.Printf("tost1.CreatedAt: %v\n", tost1.CreatedAt)
+fmt.Printf("tost1.UpdatedAt: %v\n", tost1.UpdatedAt)
+fmt.Printf("tost1.Id1: %v\n", tost1.Id1)
+fmt.Printf("tost1.Id2: %v\n", tost1.Id2)
+fmt.Printf("tost1.Id3: %v\n", tost1.Id3)
+fmt.Printf("tost1.Id1Hex: %v\n", tost1.Id1Hex)
+fmt.Printf("tost1.Id1Hex: %v\n", tost1.Id1Hex)
+```
+
+```shell
+============================
+tost1.CreatedAt: 2022-02-23
+tost1.UpdatedAt: 2022-02-16 00:00:00 +0000 UTC
+tost1.Id1: 0xc000011840
+tost1.Id2: 6215b49478940fa75a516b96
+tost1.Id3: 6215b49478940fa75a516b95
+tost1.Id1Hex: ObjectIdHex("6215b494eb37b66f0ab105a9")
+tost1.Id1Hex: ObjectIdHex("6215b494eb37b66f0ab105a9")
 ```
 
 # Related repository
@@ -424,6 +494,3 @@ BenchmarkCopier-4   	   62940	     18695 ns/op	   14640 B/op	     166 allocs/op
 PASS
 ok  	github.com/young2j/gocopy	4.999s
 ```
-
-
-

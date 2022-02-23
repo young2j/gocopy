@@ -23,6 +23,7 @@ type Perm struct {
 type AccessRolePerms struct {
 	Id1       *string
 	Id2       string
+	Id3       string
 	Id1Hex    bson.ObjectId
 	Id2Hex    primitive.ObjectID
 	Role      *string

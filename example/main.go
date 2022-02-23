@@ -410,6 +410,7 @@ func main() {
 	fmt.Printf("time.Time to string-> to1.CreatedAt: %v\n", to1.CreatedAt)
 	fmt.Printf("string to time.Time-> to1.UpdatedAt: %v\n", to1.UpdatedAt)
 
+	// 12. struct to map
 	fromst := model.AccessRolePerms{
 		CreatedAt: time.Now(),
 		UpdatedAt: "2022/02/16",
@@ -430,7 +431,7 @@ func main() {
 	}
 	// toBM := mbson.M{}
 	toBM := bson.M{
-		"perms": []*model.Perm{{Action: "GET", Label: "rest-get-method"}},
+		"perms":   []*model.Perm{{Action: "GET", Label: "rest-get-method"}},
 		"permMap": map[string]*model.Perm{"get": {Action: "GET", Label: "rest-get-method"}},
 		// "permMap": bson.M{"get": model.Perm{Action: "GET", Label: "rest-get-method"}},
 		// "child": map[string]string{"from":"child"},
@@ -469,4 +470,108 @@ func main() {
 	fmt.Printf("toBM[\"permMap\"]: %#v\n", toBM["permMap"])
 	fmt.Printf("toBM[\"child\"]: %#v\n", toBM["child"])
 	// fmt.Printf("toBM: %v\n", toBM)
+
+	// 13. struct to struct by convert func
+	id3 := primitive.NewObjectID()
+	fromst1 := model.AccessRolePerms{
+		CreatedAt: time.Now(),
+		UpdatedAt: "2022/02/16",
+		Id1:       bson.NewObjectId(),
+		Id2:       primitive.NewObjectID(),
+		Id3:       &id3,
+		Id1Hex:    bson.NewObjectId().Hex(),
+		Id2Hex:    primitive.NewObjectID().Hex(),
+	}
+	tost1 := types.AccessRolePerms{}
+	gocopy.CopyWithOption(&tost1, fromst1, &gocopy.Option{
+		Converters: map[string]func(interface{}) interface{}{
+			"CreatedAt": func(v interface{}) interface{} {
+				return v.(time.Time).Format("2006-01-02")
+			},
+			"UpdatedAt": func(v interface{}) interface{} {
+				t, _ := time.Parse("2006/01/02", v.(string))
+				return t
+			},
+			"Id1": func(v interface{}) interface{} {
+				return v.(bson.ObjectId).Hex()
+			},
+			"Id2": func(v interface{}) interface{} {
+				return v.(primitive.ObjectID).Hex()
+			},
+			"Id3": func(v interface{}) interface{} {
+				return v.(*primitive.ObjectID).Hex()
+			},
+			"Id1Hex": func(v interface{}) interface{} {
+				return bson.ObjectIdHex(v.(string))
+			},
+			"Id2Hex": func(v interface{}) interface{} {
+				oid, _ := primitive.ObjectIDFromHex(v.(string))
+				return oid
+			},
+		},
+	})
+	fmt.Println("============================")
+	fmt.Printf("tost1.CreatedAt: %v\n", tost1.CreatedAt)
+	fmt.Printf("tost1.UpdatedAt: %v\n", tost1.UpdatedAt)
+	fmt.Printf("tost1.Id1: %v\n", tost1.Id1)
+	fmt.Printf("tost1.Id2: %v\n", tost1.Id2)
+	fmt.Printf("tost1.Id3: %v\n", tost1.Id3)
+	fmt.Printf("tost1.Id1Hex: %v\n", tost1.Id1Hex)
+	fmt.Printf("tost1.Id1Hex: %v\n", tost1.Id1Hex)
+
+	// 14. struct to map by convert func
+	id3_ := primitive.NewObjectID()
+	fromst2 := model.AccessRolePerms{
+		CreatedAt: time.Now(),
+		UpdatedAt: "2022/02/16",
+		Id1:       bson.NewObjectId(),
+		Id2:       primitive.NewObjectID(),
+		Id3:       &id3_,
+		Id1Hex:    bson.NewObjectId().Hex(),
+		Id2Hex:    primitive.NewObjectID().Hex(),
+	}
+	toId1 := bson.NewObjectId().Hex()
+	// tom := map[string]interface{}{
+	// 	"Id1": &toId1,
+	// }
+	tom := bson.M{
+		"Id1": &toId1,
+	}
+	gocopy.CopyWithOption(&tom, fromst2, &gocopy.Option{
+		ToCase: "Camel",
+		Append: true,
+		Converters: map[string]func(interface{}) interface{}{
+			"CreatedAt": func(v interface{}) interface{} {
+				return v.(time.Time).Format("2006-01-02")
+			},
+			"UpdatedAt": func(v interface{}) interface{} {
+				t, _ := time.Parse("2006/01/02", v.(string))
+				return t
+			},
+			"Id1": func(v interface{}) interface{} {
+				return v.(bson.ObjectId).Hex()
+			},
+			"Id2": func(v interface{}) interface{} {
+				return v.(primitive.ObjectID).Hex()
+			},
+			"Id3": func(v interface{}) interface{} {
+				return v.(*primitive.ObjectID).Hex()
+			},
+			"Id1Hex": func(v interface{}) interface{} {
+				return bson.ObjectIdHex(v.(string))
+			},
+			"Id2Hex": func(v interface{}) interface{} {
+				oid, _ := primitive.ObjectIDFromHex(v.(string))
+				return oid
+			},
+		},
+	})
+	fmt.Println("============================")
+	fmt.Printf("tom[\"CreatedAt\"]: %v\n", tom["CreatedAt"])
+	fmt.Printf("tom[\"UpdatedAt\"]: %v\n", tom["UpdatedAt"])
+	fmt.Printf("tom[\"Id1\"]: %v\n", tom["Id1"])
+	fmt.Printf("tom[\"Id2\"]: %v\n", tom["Id2"])
+	fmt.Printf("tom[\"Id3\"]: %v\n", tom["Id3"])
+	fmt.Printf("tom[\"Id1Hex\"]: %v\n", tom["Id1Hex"])
+	fmt.Printf("tom[\"Id1Hex\"]: %v\n", tom["Id1Hex"])
 }

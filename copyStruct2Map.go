@@ -79,6 +79,19 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 			toVType, toVIsPtr = indirectType(toVType)
 		}
 
+		// convert field value by customized func
+		if convertFunc, ok := opt.Converters[fromField.Name]; ok {
+			convertValue := convertFunc(fromFV.Interface())
+			if toVIsPtr && toV.IsValid() {
+				toFV := indirectValue(reflect.New(toVType))
+				toFV.Set(reflect.ValueOf(convertValue))
+				toValue.SetMapIndex(toKey, toFV.Addr())
+			} else {
+				toValue.SetMapIndex(toKey, reflect.ValueOf(convertValue))
+			}
+			continue
+		}
+
 		// specially handle bson.ObjectId to string and vice versa
 		if objectIdType, ok := opt.ObjectIdToString[fromField.Name]; ok {
 			if objectIdType == "mgo" {

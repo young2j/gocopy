@@ -19,6 +19,8 @@ type Option struct {
 	ObjectIdToString map[string]string            // eg. {"Id": "mgo"}
 	TimeToString     map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
 	StringToTime     map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
+	// for strcut to struct/map
+	Converters map[string]func(interface{}) interface{}
 	// only for struct to map
 	ToCase     string // eg. "LowerCamel"(default)|"Camel"|"Snake"|"ScreamingSnake"|"Kebab"|"ScreamingKebab"
 	IgnoreZero bool

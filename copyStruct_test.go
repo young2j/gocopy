@@ -141,6 +141,47 @@ func Test_copyStructWithOption(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "copystruct-convert",
+			args: args{
+				from: AccessRolePerms1{
+					CreatedAt: time.Now(),
+					UpdatedAt: "2022/02/16",
+					Id1:       bson.NewObjectId(),
+					Id2:       primitive.NewObjectID(),
+					Id1Hex:    "61f04828eb37b662c8f3b085",
+					Id2Hex:    "61f04828eb37b662c8f3b085",
+				},
+				to: AccessRolePerms2{},
+				opt: &Option{
+					Converters: map[string]func(interface{}) interface{}{
+						"CreatedAt": func(v interface{}) interface{} {
+							return v.(time.Time).Format("2006-01-02 15:04:05")
+						},
+						"UpdatedAt": func(v interface{}) interface{} {
+							t, _ := time.Parse("2006/01/02", v.(string))
+							return t
+						},
+						"Id1": func(v interface{}) interface{} {
+							return v.(bson.ObjectId).Hex()
+						},
+						"Id2": func(v interface{}) interface{} {
+							return v.(primitive.ObjectID).Hex()
+						},
+						"Id3": func(v interface{}) interface{} {
+							return v.(*primitive.ObjectID).Hex()
+						},
+						"Id1Hex": func(v interface{}) interface{} {
+							return bson.ObjectIdHex(v.(string))
+						},
+						"Id2Hex": func(v interface{}) interface{} {
+							oid, _ := primitive.ObjectIDFromHex(v.(string))
+							return oid
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -188,6 +229,41 @@ func Test_copyStructWithOption(t *testing.T) {
 					}
 				}
 
+				fromTimeStr := from.CreatedAt.Format("2006-01-02 15:04:05")
+				if fromTimeStr != to.CreatedAt {
+					t.Fail()
+				}
+
+				toTimeStr := to.UpdatedAt.Format("2006/01/02")
+				if toTimeStr != from.UpdatedAt {
+					t.Fail()
+				}
+			case "copystruct-convert":
+				from, ok := tt.args.from.(AccessRolePerms1)
+				if !ok {
+					t.Fail()
+				}
+				to, ok := tt.args.to.(AccessRolePerms2)
+				if !ok {
+					t.Fail()
+				}
+				CopyWithOption(&to, from, tt.args.opt)
+				if from.Id1.Hex() != *to.Id1 {
+					t.Fail()
+				}
+				if from.Id2.Hex() != to.Id2 {
+					t.Fail()
+				}
+				if bson.ObjectIdHex(from.Id1Hex) != to.Id1Hex {
+					t.Fail()
+				}
+				id2hex, err := primitive.ObjectIDFromHex(from.Id2Hex)
+				if err != nil {
+					t.Fail()
+				}
+				if id2hex != to.Id2Hex {
+					t.Fail()
+				}
 				fromTimeStr := from.CreatedAt.Format("2006-01-02 15:04:05")
 				if fromTimeStr != to.CreatedAt {
 					t.Fail()

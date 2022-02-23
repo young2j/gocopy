@@ -18,6 +18,7 @@ var (
 	defaultTimeLoc    = "Asia/Shanghai"
 	defaultTimeLayout = "2006-01-02 15:04:05"
 )
+
 // copyStruct copy struct to struct
 func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 	fromValue = indirectValue(fromValue)
@@ -42,9 +43,8 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 		if !ok {
 			continue
 		}
-
-		fromFieldValue := indirectValue(fromValue.FieldByName(fromField.Name))
-		// toFieldValue := indirectValue(toValue).FieldByName(toField.Name)
+		fromFValue := fromValue.FieldByName(fromField.Name)
+		fromFieldValue := indirectValue(fromFValue)
 		toFieldValue := toValue.FieldByName(toField.Name)
 
 		fromFieldType, _ := indirectType(fromField.Type)
@@ -57,6 +57,19 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 		}
 
 		if !toFieldValue.CanSet() || !fromFieldValue.IsValid() {
+			continue
+		}
+
+		// convert field value by customized func
+		if convertFunc, ok := opt.Converters[fromField.Name]; ok {
+			convertValue := convertFunc(fromFValue.Interface())
+			if toFieldIsPtr {
+				toFV := indirectValue(reflect.New(toFieldType))
+				toFV.Set(reflect.ValueOf(convertValue))
+				toFieldValue.Set(toFV.Addr())
+			} else {
+				toFieldValue.Set(reflect.ValueOf(convertValue))
+			}
 			continue
 		}
 
