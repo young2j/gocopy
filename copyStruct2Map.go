@@ -43,6 +43,10 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 
 	for i := 0; i < len(fromFields); i++ {
 		fromField := fromFields[i]
+		// ignore field to skip copy
+		if _, ok := opt.ignoreFields[fromField.Name]; ok {
+			continue
+		}
 
 		// field case
 		if opt.ToCase == "" {

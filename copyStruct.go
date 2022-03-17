@@ -30,9 +30,11 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 	// handle every struct field
 	fromFields := deepFields(fromType)
 	for i := 0; i < len(fromFields); i++ {
-		// for i := 0; i < fromType.NumField(); i++ {
-		// fromField := fromType.Field(i)
 		fromField := fromFields[i]
+		// ignore field to skip copy
+		if _, ok := opt.ignoreFields[fromField.Name]; ok {
+			continue
+		}
 		// from field to field
 		toFieldName, ok := opt.NameFromTo[fromField.Name]
 		if !ok {
@@ -58,6 +60,15 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 
 		if !toFieldValue.CanSet() || !fromFieldValue.IsValid() {
 			continue
+		}
+
+		// avoid tofield is zero slice/map, set on zero value will panic
+		if toFieldValue.IsZero() {
+			if toFieldIsPtr {
+				toFieldValue.Set(reflect.New(toField.Type))
+			} else {
+				toFieldValue.Set(indirectValue(reflect.New(toField.Type)))
+			}
 		}
 
 		// convert field value by customized func

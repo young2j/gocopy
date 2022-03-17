@@ -22,8 +22,10 @@ type Option struct {
 	// for strcut to struct/map
 	Converters map[string]func(interface{}) interface{}
 	// only for struct to map
-	ToCase     string // eg. "LowerCamel"(default)|"Camel"|"Snake"|"ScreamingSnake"|"Kebab"|"ScreamingKebab"
-	IgnoreZero bool
+	ToCase       string   // eg. "LowerCamel"(default)|"Camel"|"Snake"|"ScreamingSnake"|"Kebab"|"ScreamingKebab"
+	IgnoreZero   bool     // ignore zero value when copy
+	IgnoreFields []string // slice of ignore field name when copy
+	ignoreFields map[string]struct{}
 }
 
 func Copy(to, from interface{}) {
@@ -31,6 +33,15 @@ func Copy(to, from interface{}) {
 }
 
 func CopyWithOption(to, from interface{}, opt *Option) {
+	// init option
+	if len(opt.IgnoreFields) > 0 {
+		opt.ignoreFields = make(map[string]struct{})
+		for _, f := range opt.IgnoreFields {
+			opt.ignoreFields[f] = struct{}{}
+		}
+		opt.IgnoreFields = nil
+	}
+
 	fromValue := reflect.ValueOf(from)
 	toValue := reflect.ValueOf(to)
 	// avoid copy from nil
