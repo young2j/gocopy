@@ -127,9 +127,14 @@ func Test_copyStructWithOption(t *testing.T) {
 					From:      "fromtofield",
 					CreatedAt: time.Now(),
 					UpdatedAt: "2022/01/01",
+					Child: &AccessRolePerms1{
+						Id1: bson.NewObjectId(),
+						Id2: primitive.NewObjectID(),
+					},
 				},
 				to: AccessRolePerms2{
 					Actions: []string{"GET", "POST"},
+					Child:   &AccessRolePerms2{},
 				},
 				opt: &Option{
 					ObjectIdToString: map[string]string{"Id1": "mgo", "Id2": "official"},       // Id1: bson.ObjectId, Id2: primitive.ObjectId
@@ -138,6 +143,8 @@ func Test_copyStructWithOption(t *testing.T) {
 					NameFromTo:       map[string]string{"From": "To"},
 					StringToTime:     map[string]map[string]string{"UpdatedAt": {"loc": "Asia/Shanghai", "layout": "2006/01/02"}},
 					TimeToString:     map[string]map[string]string{"CreatedAt": nil},
+					IgnoreFields:     []string{"Id1"},
+					IgnoreLevel:      2,
 				},
 			},
 		},
@@ -203,9 +210,16 @@ func Test_copyStructWithOption(t *testing.T) {
 					t.Fail()
 				}
 
-				if from.Id1.Hex() != *to.Id1 {
+				// if from.Id1.Hex() != *to.Id1 {
+				// 	t.Fail()
+				// }
+				if to.Id1 != nil {
 					t.Fail()
 				}
+				if to.Child.Id1 != nil {
+					t.Fail()
+				}
+
 				if from.Id2.Hex() != to.Id2 {
 					t.Fail()
 				}
@@ -238,6 +252,7 @@ func Test_copyStructWithOption(t *testing.T) {
 				if toTimeStr != from.UpdatedAt {
 					t.Fail()
 				}
+
 			case "copystruct-convert":
 				from, ok := tt.args.from.(AccessRolePerms1)
 				if !ok {

@@ -46,7 +46,7 @@ type AccessRolePerms1 struct {
 	EmbedFields
 	CreatedAt time.Time
 	UpdatedAt string
-	Child *AccessRolePerms1
+	Child     *AccessRolePerms1
 }
 
 type AccessRolePerms2 struct {
@@ -63,6 +63,7 @@ type AccessRolePerms2 struct {
 	EmbedF1   string
 	CreatedAt string
 	UpdatedAt time.Time
+	Child     *AccessRolePerms2
 }
 
 func BenchmarkCopy(b *testing.B) {

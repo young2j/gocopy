@@ -32,8 +32,11 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 	for i := 0; i < len(fromFields); i++ {
 		fromField := fromFields[i]
 		// ignore field to skip copy
-		if _, ok := opt.ignoreFields[fromField.Name]; ok {
-			continue
+		if level, ok := opt.ignoreFields[fromField.Name]; ok {
+			opt.ignoreFields[fromField.Name]++
+			if level <= opt.IgnoreLevel {
+				continue
+			}
 		}
 		// from field to field
 		toFieldName, ok := opt.NameFromTo[fromField.Name]
@@ -113,7 +116,7 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 			}
 		}
 		if objectIdType, ok := opt.StringToObjectId[fromField.Name]; ok {
-			if objectIdType == "mgo" {
+			if objectIdType == "mgo" && bson.IsObjectIdHex(fromFieldValue.String()) {
 				objectId := bson.ObjectIdHex(fromFieldValue.String())
 				if toFieldIsPtr {
 					toFV := indirectValue(reflect.New(toFieldType))
@@ -171,6 +174,9 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 			continue
 		}
 		if stringFieldMap, ok := opt.StringToTime[fromField.Name]; ok {
+			if fromFieldValue.IsZero() { // ""
+				continue
+			}
 			timeTime := time.Now()
 			if stringFieldMap == nil {
 				location, err := time.LoadLocation(defaultTimeLoc)
