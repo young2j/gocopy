@@ -78,6 +78,16 @@ func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 						dest = dest.Addr()
 					}
 					toValue.SetMapIndex(fromK, dest)
+				case reflect.Interface: // like bson.M
+					toV := indirectValue(toValue.MapIndex(fromK))
+					if !toV.IsValid() { // zero value
+						toV = indirectValue(reflect.New(toVType))
+					}
+					if toV.IsNil() {
+						toValue.SetMapIndex(fromK, fromV)
+					} else {
+						CopyWithOption(toV.Interface(), fromV.Interface(), opt)
+					}
 				default:
 					toValue.SetMapIndex(fromK, fromV)
 				}
@@ -123,6 +133,16 @@ func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 						dest = dest.Addr()
 					}
 					toValue.SetMapIndex(fromK, dest)
+				case reflect.Interface: // like bson.M
+					toV := indirectValue(toValue.MapIndex(fromK))
+					if !toV.IsValid() { // zero value
+						toV = indirectValue(reflect.New(toVType))
+					}
+					if toV.IsNil() {
+						toValue.SetMapIndex(fromK, fromV)
+					} else {
+						CopyWithOption(toV.Interface(), fromV.Interface(), opt)
+					}
 				default:
 					toValue.SetMapIndex(fromK, fromV)
 				}
