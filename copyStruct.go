@@ -77,12 +77,18 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 		// convert field value by customized func
 		if convertFunc, ok := opt.Converters[fromField.Name]; ok {
 			convertValue := convertFunc(fromFValue.Interface())
+
 			if toFieldIsPtr {
 				toFV := indirectValue(reflect.New(toFieldType))
 				toFV.Set(reflect.ValueOf(convertValue))
 				toFieldValue.Set(toFV.Addr())
 			} else {
-				toFieldValue.Set(reflect.ValueOf(convertValue))
+				// sometimes convertValue maybe nil
+				if convertValue == nil {
+					toFieldValue.Set(reflect.Zero(toFieldValue.Type()))
+				} else {
+					toFieldValue.Set(reflect.ValueOf(convertValue))
+				}
 			}
 			continue
 		}

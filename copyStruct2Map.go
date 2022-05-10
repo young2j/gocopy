@@ -94,7 +94,12 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 				toFV.Set(reflect.ValueOf(convertValue))
 				toValue.SetMapIndex(toKey, toFV.Addr())
 			} else {
-				toValue.SetMapIndex(toKey, reflect.ValueOf(convertValue))
+				// sometimes convertValue maybe nil
+				if convertValue == nil {
+					toValue.SetMapIndex(toKey, reflect.Zero(toValue.Type()))
+				} else {
+					toValue.SetMapIndex(toKey, reflect.ValueOf(convertValue))
+				}
 			}
 			continue
 		}
