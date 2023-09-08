@@ -10,9 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
 	"github.com/jinzhu/copier"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Perm1 struct {
@@ -33,10 +31,6 @@ type EmbedFields struct {
 }
 
 type AccessRolePerms1 struct {
-	Id1     bson.ObjectId
-	Id2     primitive.ObjectID
-	Id1Hex  string
-	Id2Hex  string
 	Role    string
 	Roll    *int
 	Actions []string
@@ -50,10 +44,6 @@ type AccessRolePerms1 struct {
 }
 
 type AccessRolePerms2 struct {
-	Id1       *string
-	Id2       string
-	Id1Hex    bson.ObjectId
-	Id2Hex    primitive.ObjectID
 	Role      *string
 	Roll      *int
 	Actions   []string

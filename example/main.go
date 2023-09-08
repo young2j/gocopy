@@ -370,30 +370,7 @@ func main() {
 	fmt.Println("==============================")
 	fmt.Printf("from field to another field-> ost2.To: %v\n", string(ost2.To))
 
-	// 10. objectId to string and vice versa
-	from := model.AccessRolePerms{
-		Id1:    bson.NewObjectId(),
-		Id2:    primitive.NewObjectID(),
-		Id1Hex: "61f04828eb37b662c8f3b085",
-		Id2Hex: "61f04828eb37b662c8f3b085",
-	}
-	to := types.AccessRolePerms{
-		Actions: []string{"GET", "POST"},
-	}
-	option := &gocopy.Option{
-		ObjectIdToString: map[string]string{"Id1": "mgo", "Id2": "official"},       // Id1: bson.ObjectId, Id2: primitive.ObjectId
-		StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
-		Append:           true,
-	}
-	gocopy.CopyWithOption(&to, from, option)
-	fmt.Println("==============================")
-	fmt.Println("objectId to string and vice versa->")
-	fmt.Printf("from.Id1: %v to.Id1: %v \n", from.Id1, *to.Id1)
-	fmt.Printf("from.Id2: %v to.Id2: %v \n", from.Id2, to.Id2)
-	fmt.Printf("from.Id1Hex: %v to.Id1Hex: %v \n", from.Id1Hex, to.Id1Hex)
-	fmt.Printf("from.Id2Hex: %v to.Id2Hex: %v \n", from.Id2Hex, to.Id2Hex)
-
-	// 11. time.Time to string
+	// 10. time.Time to string
 	from1 := model.AccessRolePerms{
 		CreatedAt: time.Now(),
 		UpdatedAt: "2022/02/11 15:04:05",
@@ -410,14 +387,10 @@ func main() {
 	fmt.Printf("time.Time to string-> to1.CreatedAt: %v\n", to1.CreatedAt)
 	fmt.Printf("string to time.Time-> to1.UpdatedAt: %v\n", to1.UpdatedAt)
 
-	// 12. struct to map
+	// 11. struct to map
 	fromst := model.AccessRolePerms{
 		CreatedAt: time.Now(),
 		UpdatedAt: "2022/02/16",
-		Id1:       bson.NewObjectId(),
-		Id2:       primitive.NewObjectID(),
-		Id1Hex:    bson.NewObjectId().Hex(),
-		Id2Hex:    primitive.NewObjectID().Hex(),
 		Role:      "copystruct2map",
 		Roll:      &roll,
 		From:      "From",
@@ -425,8 +398,7 @@ func main() {
 		Perms:     []*model.Perm{{Action: "PUT", Label: "rest-put-method"}},
 		PermMap:   map[string]*model.Perm{"delete": {Action: "DELETE", Label: "rest-delete-method"}},
 		Child: &model.AccessRolePerms{
-			Id1Hex: bson.NewObjectId().Hex(),
-			Role:   "embedstruct",
+			Role: "embedstruct",
 		},
 	}
 	// toBM := mbson.M{}
@@ -445,23 +417,16 @@ func main() {
 	// }
 	// gocopy.Copy(&toBM, fromst)
 	gocopy.CopyWithOption(&toBM, fromst, &gocopy.Option{
-		Append:           true,
-		NameFromTo:       map[string]string{"From": "to", "Id1": "_id"},
-		ObjectIdToString: map[string]string{"Id1": "mgo", "Id2": "official"},       // Id1: bson.ObjectId, Id2: primitive.ObjectId
-		StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
-		TimeToString:     map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
-		StringToTime:     map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02"}},
-		IgnoreZero:       true,
+		Append:       true,
+		NameFromTo:   map[string]string{"From": "to", "Id1": "_id"},
+		TimeToString: map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
+		StringToTime: map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02"}},
+		IgnoreZero:   true,
 	})
 	fmt.Println("==============================")
 	fmt.Println("copy struct to map->")
 	fmt.Printf("toBM[\"createdAt\"]: %v\n", toBM["createdAt"])
 	fmt.Printf("toBM[\"updatedAt\"]: %v\n", toBM["updatedAt"])
-	fmt.Printf("toBM[\"id1\"]: %v\n", toBM["id1"])
-	fmt.Printf("toBM[\"id2\"]: %v\n", toBM["id2"])
-	fmt.Printf("toBM[\"_id\"]: %v\n", toBM["_id"])
-	fmt.Printf("toBM[\"id1Hex\"]: %v\n", toBM["id1Hex"])
-	fmt.Printf("toBM[\"id2Hex\"]: %v\n", toBM["id2Hex"])
 	fmt.Printf("toBM[\"role\"]: %v\n", toBM["role"])
 	fmt.Printf("toBM[\"roll\"]: %v\n", *toBM["roll"].(*int))
 	fmt.Printf("toBM[\"to\"]: %v\n", toBM["to"])

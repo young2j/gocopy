@@ -15,8 +15,6 @@ type Option struct {
 	Append bool
 	// for struct to struct/map
 	NameFromTo       map[string]string
-	StringToObjectId map[string]string            // eg. {"Id": "official"}
-	ObjectIdToString map[string]string            // eg. {"Id": "mgo"}
 	TimeToString     map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
 	StringToTime     map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
 	// for strcut to struct/map

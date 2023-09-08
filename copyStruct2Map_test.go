@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func Test_copyStruct2Map(t *testing.T) {
@@ -32,10 +31,6 @@ func Test_copyStruct2Map(t *testing.T) {
 				from: AccessRolePerms1{
 					CreatedAt: time.Now(),
 					UpdatedAt: "2022/02/16",
-					Id1:       bson.NewObjectId(),
-					Id2:       primitive.NewObjectID(),
-					Id1Hex:    bson.NewObjectId().Hex(),
-					Id2Hex:    primitive.NewObjectID().Hex(),
 					Role:      "copystruct2map",
 					Roll:      &roll,
 					From:      "From",
@@ -43,8 +38,7 @@ func Test_copyStruct2Map(t *testing.T) {
 					Perms:     []*Perm1{{Action: "PUT", Label: "rest-put-method"}},
 					PermMap:   map[string]*Perm1{"delete": {Action: "DELETE", Label: "rest-delete-method"}},
 					Child: &AccessRolePerms1{
-						Id1Hex: "620b7c65eb37b696fe9eef25",
-						Role:   "embedstruct",
+						Role: "embedstruct",
 					},
 				},
 				to: bson.M{},
@@ -72,20 +66,6 @@ func Test_copyStruct2Map(t *testing.T) {
 					t.Fail()
 				}
 
-				if to["id1"] != from.Id1 {
-					t.Fail()
-				}
-				if to["id2"] != from.Id2 {
-					t.Fail()
-				}
-
-				if to["id1Hex"] != from.Id1Hex {
-					t.Fail()
-				}
-
-				if to["id2Hex"] != from.Id2Hex {
-					t.Fail()
-				}
 				if to["from"] != from.From {
 					t.Fail()
 				}
@@ -143,9 +123,6 @@ func Test_copyStruct2Map(t *testing.T) {
 				if !ok {
 					t.Fail()
 				}
-				if (*toChild)["id1Hex"] != "620b7c65eb37b696fe9eef25" {
-					t.Fail()
-				}
 				if (*toChild)["role"] != "embedstruct" {
 					t.Fail()
 				}
@@ -169,9 +146,8 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 		"put": {"action": "PUT", "label": "rest-put-method"},
 	}
 	targetChild := &map[string]interface{}{
-		"to":     "child",
-		"id1Hex": "620b7c65eb37b696fe9eef25",
-		"role":   "embedstruct",
+		"to":   "child",
+		"role": "embedstruct",
 	}
 	tests := []struct {
 		name string
@@ -183,10 +159,6 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 				from: AccessRolePerms1{
 					UpdatedAt: "2022/02/16",
 					CreatedAt: time.Now(),
-					Id1:       bson.NewObjectId(),
-					Id2:       primitive.NewObjectID(),
-					Id1Hex:    bson.NewObjectId().Hex(),
-					Id2Hex:    primitive.NewObjectID().Hex(),
 					Role:      "copystruct2map",
 					Roll:      &roll,
 					From:      "From",
@@ -194,8 +166,7 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 					Perms:     []*Perm1{{Action: "PUT", Label: "rest-put-method"}},
 					PermMap:   map[string]*Perm1{"put": {Action: "PUT", Label: "rest-put-method"}},
 					Child: &AccessRolePerms1{
-						Id1Hex: "620b7c65eb37b696fe9eef25",
-						Role:   "embedstruct",
+						Role: "embedstruct",
 					},
 				},
 				to: map[interface{}]interface{}{
@@ -204,13 +175,11 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 					"child":   &AccessRolePerms1{From: "child"},
 				},
 				opt: &Option{
-					Append:           true,
-					NameFromTo:       map[string]string{"From": "to", "Id1": "_id"},
-					ObjectIdToString: map[string]string{"Id1": "mgo", "Id2": "official"},       // Id1: bson.ObjectId, Id2: primitive.ObjectId
-					StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
-					TimeToString:     map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
-					StringToTime:     map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02"}},
-					IgnoreZero:       true,
+					Append:       true,
+					NameFromTo:   map[string]string{"From": "to"},
+					TimeToString: map[string]map[string]string{"CreatedAt": {"layout": "2006-01-02", "loc": "America/New_York"}},
+					StringToTime: map[string]map[string]string{"UpdatedAt": {"layout": "2006/01/02"}},
+					IgnoreZero:   true,
 				},
 			},
 		},
@@ -220,10 +189,6 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 				from: AccessRolePerms1{
 					CreatedAt: time.Now(),
 					UpdatedAt: "2022/02/16",
-					Id1:       bson.NewObjectId(),
-					Id2:       primitive.NewObjectID(),
-					Id1Hex:    "61f04828eb37b662c8f3b085",
-					Id2Hex:    "61f04828eb37b662c8f3b085",
 				},
 				to: bson.M{},
 				opt: &Option{
@@ -234,22 +199,6 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 						"UpdatedAt": func(v interface{}) interface{} {
 							t, _ := time.Parse("2006/01/02", v.(string))
 							return t
-						},
-						"Id1": func(v interface{}) interface{} {
-							return v.(bson.ObjectId).Hex()
-						},
-						"Id2": func(v interface{}) interface{} {
-							return v.(primitive.ObjectID).Hex()
-						},
-						"Id3": func(v interface{}) interface{} {
-							return v.(*primitive.ObjectID).Hex()
-						},
-						"Id1Hex": func(v interface{}) interface{} {
-							return bson.ObjectIdHex(v.(string))
-						},
-						"Id2Hex": func(v interface{}) interface{} {
-							oid, _ := primitive.ObjectIDFromHex(v.(string))
-							return oid
 						},
 					},
 				},
@@ -287,20 +236,6 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 					t.Fail()
 				}
 
-				if to["_id"] != from.Id1.Hex() {
-					t.Fail()
-				}
-				if to["id2"] != from.Id2.Hex() {
-					t.Fail()
-				}
-
-				if to["id1Hex"].(bson.ObjectId).Hex() != from.Id1Hex {
-					t.Fail()
-				}
-
-				if to["id2Hex"].(primitive.ObjectID).Hex() != from.Id2Hex {
-					t.Fail()
-				}
 				if to["to"] != from.From {
 					t.Fail()
 				}
@@ -377,10 +312,6 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 					}
 					if (k == "to" || k == "role") && toChildV != v {
 						t.Fail()
-					} else if k == "id1Hex" {
-						if toChildV != bson.ObjectIdHex("620b7c65eb37b696fe9eef25") {
-							t.Fail()
-						}
 					}
 				}
 				// ignore
@@ -404,21 +335,6 @@ func Test_copyStruct2MapWithOption(t *testing.T) {
 				}
 
 				if to["updatedAt"].(time.Time).Format("2006/01/02") != from.UpdatedAt {
-					t.Fail()
-				}
-
-				if to["id1"] != from.Id1.Hex() {
-					t.Fail()
-				}
-				if to["id2"] != from.Id2.Hex() {
-					t.Fail()
-				}
-
-				if to["id1Hex"].(bson.ObjectId).Hex() != from.Id1Hex {
-					t.Fail()
-				}
-
-				if to["id2Hex"].(primitive.ObjectID).Hex() != from.Id2Hex {
 					t.Fail()
 				}
 			}

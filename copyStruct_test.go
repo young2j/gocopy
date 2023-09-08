@@ -119,32 +119,23 @@ func Test_copyStructWithOption(t *testing.T) {
 			name: "copystruct",
 			args: args{
 				from: AccessRolePerms1{
-					Id1:       bson.NewObjectId(),
-					Id2:       primitive.NewObjectID(),
-					Id1Hex:    "61f04828eb37b662c8f3b085",
-					Id2Hex:    "61f04828eb37b662c8f3b085",
 					Actions:   []string{"PUT", "DELETE"},
 					From:      "fromtofield",
 					CreatedAt: time.Now(),
 					UpdatedAt: "2022/01/01",
-					Child: &AccessRolePerms1{
-						Id1: bson.NewObjectId(),
-						Id2: primitive.NewObjectID(),
-					},
+					Child:     &AccessRolePerms1{},
 				},
 				to: AccessRolePerms2{
 					Actions: []string{"GET", "POST"},
 					Child:   &AccessRolePerms2{},
 				},
 				opt: &Option{
-					ObjectIdToString: map[string]string{"Id1": "mgo", "Id2": "official"},       // Id1: bson.ObjectId, Id2: primitive.ObjectId
-					StringToObjectId: map[string]string{"Id1Hex": "mgo", "Id2Hex": "official"}, // Id1Hex: bson.ObjectId.Hex(), Id2Hex: primitive.ObjectId.Hex()
-					Append:           true,
-					NameFromTo:       map[string]string{"From": "To"},
-					StringToTime:     map[string]map[string]string{"UpdatedAt": {"loc": "Asia/Shanghai", "layout": "2006/01/02"}},
-					TimeToString:     map[string]map[string]string{"CreatedAt": nil},
-					IgnoreFields:     []string{"Id1"},
-					IgnoreLevel:      2,
+					Append:       true,
+					NameFromTo:   map[string]string{"From": "To"},
+					StringToTime: map[string]map[string]string{"UpdatedAt": {"loc": "Asia/Shanghai", "layout": "2006/01/02"}},
+					TimeToString: map[string]map[string]string{"CreatedAt": nil},
+					IgnoreFields: []string{"Id1"},
+					IgnoreLevel:  2,
 				},
 			},
 		},
@@ -154,10 +145,6 @@ func Test_copyStructWithOption(t *testing.T) {
 				from: AccessRolePerms1{
 					CreatedAt: time.Now(),
 					UpdatedAt: "2022/02/16",
-					Id1:       bson.NewObjectId(),
-					Id2:       primitive.NewObjectID(),
-					Id1Hex:    "61f04828eb37b662c8f3b085",
-					Id2Hex:    "61f04828eb37b662c8f3b085",
 				},
 				to: AccessRolePerms2{},
 				opt: &Option{
@@ -210,30 +197,6 @@ func Test_copyStructWithOption(t *testing.T) {
 					t.Fail()
 				}
 
-				// if from.Id1.Hex() != *to.Id1 {
-				// 	t.Fail()
-				// }
-				if to.Id1 != nil {
-					t.Fail()
-				}
-				if to.Child.Id1 != nil {
-					t.Fail()
-				}
-
-				if from.Id2.Hex() != to.Id2 {
-					t.Fail()
-				}
-				if bson.ObjectIdHex(from.Id1Hex) != to.Id1Hex {
-					t.Fail()
-				}
-				id2hex, err := primitive.ObjectIDFromHex(from.Id2Hex)
-				if err != nil {
-					t.Fail()
-				}
-				if id2hex != to.Id2Hex {
-					t.Fail()
-				}
-
 				if len(to.Actions) != len(actions) {
 					t.Fail()
 				}
@@ -263,22 +226,7 @@ func Test_copyStructWithOption(t *testing.T) {
 					t.Fail()
 				}
 				CopyWithOption(&to, from, tt.args.opt)
-				if from.Id1.Hex() != *to.Id1 {
-					t.Fail()
-				}
-				if from.Id2.Hex() != to.Id2 {
-					t.Fail()
-				}
-				if bson.ObjectIdHex(from.Id1Hex) != to.Id1Hex {
-					t.Fail()
-				}
-				id2hex, err := primitive.ObjectIDFromHex(from.Id2Hex)
-				if err != nil {
-					t.Fail()
-				}
-				if id2hex != to.Id2Hex {
-					t.Fail()
-				}
+
 				fromTimeStr := from.CreatedAt.Format("2006-01-02 15:04:05")
 				if fromTimeStr != to.CreatedAt {
 					t.Fail()

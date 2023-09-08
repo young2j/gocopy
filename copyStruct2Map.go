@@ -11,9 +11,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
 	"github.com/iancoleman/strcase"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var caseFunc = map[string]func(s string) string{
@@ -104,59 +102,6 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 			continue
 		}
 
-		// specially handle bson.ObjectId to string and vice versa
-		if objectIdType, ok := opt.ObjectIdToString[fromField.Name]; ok {
-			if objectIdType == "mgo" {
-				objectId, ok := fromFieldValue.Interface().(bson.ObjectId)
-				if ok {
-					if toVIsPtr {
-						toFV := indirectValue(reflect.New(toVType))
-						toFV.Set(reflect.ValueOf(objectId.Hex()))
-						toValue.SetMapIndex(toKey, toFV.Addr())
-					} else {
-						toValue.SetMapIndex(toKey, reflect.ValueOf(objectId.Hex()))
-					}
-					continue
-				}
-			} else if objectIdType == "official" {
-				objectId, ok := fromFieldValue.Interface().(primitive.ObjectID)
-				if ok {
-					if toVIsPtr {
-						toFV := indirectValue(reflect.New(toVType))
-						toFV.Set(reflect.ValueOf(objectId.Hex()))
-						toValue.SetMapIndex(toKey, toFV.Addr())
-					} else {
-						toValue.SetMapIndex(toKey, reflect.ValueOf(objectId.Hex()))
-					}
-					continue
-				}
-			}
-		}
-		if objectIdType, ok := opt.StringToObjectId[fromField.Name]; ok {
-			if objectIdType == "mgo" && bson.IsObjectIdHex(fromFieldValue.String()) {
-				objectId := bson.ObjectIdHex(fromFieldValue.String())
-				if toVIsPtr {
-					toFV := indirectValue(reflect.New(toVType))
-					toFV.Set(reflect.ValueOf(objectId))
-					toValue.SetMapIndex(toKey, toFV.Addr())
-				} else {
-					toValue.SetMapIndex(toKey, reflect.ValueOf(objectId))
-				}
-				continue
-			} else if objectIdType == "official" {
-				if objectId, err := primitive.ObjectIDFromHex(fromFieldValue.String()); err == nil {
-					if toVIsPtr {
-						toFV := indirectValue(reflect.New(toVType))
-						toFV.Set(reflect.ValueOf(objectId))
-						toValue.SetMapIndex(toKey, toFV.Addr())
-					} else {
-						toValue.SetMapIndex(toKey, reflect.ValueOf(objectId))
-					}
-					continue
-				}
-			}
-		}
-
 		// specially handle time.Time to string and vice versa
 		if timeFieldMap, ok := opt.TimeToString[fromField.Name]; ok {
 			timeString := ""
@@ -194,7 +139,7 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 			if fromFieldValue.IsZero() { // ""
 				continue
 			}
-			timeTime := time.Now()
+			var timeTime = time.Now()
 			if stringFieldMap == nil {
 				location, err := time.LoadLocation(defaultTimeLoc)
 				if err != nil {

@@ -16,9 +16,7 @@ import (
 
 func Test_bson(t *testing.T) {
 	from := AccessRolePerms1{
-		Id1:    bson.NewObjectId(),
-		Id1Hex: bson.NewObjectId().Hex(),
-		Perms:  []*Perm1{{Action: "GET", Label: "get"}},
+		Perms: []*Perm1{{Action: "GET", Label: "get"}},
 	}
 	fromM := bson.M{}
 

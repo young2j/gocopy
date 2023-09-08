@@ -25,19 +25,19 @@ type EmbedFields struct {
 }
 
 type AccessRolePerms struct {
-	CreatedAt  time.Time
-	UpdatedAt  string
-	Id1     bson.ObjectId
-	Id2     primitive.ObjectID
-	Id3     *primitive.ObjectID
-	Id1Hex  string
-	Id2Hex  string
-	Role    string
-	Roll    *int
-	Actions []string
-	Perms   []*Perm
-	PermMap map[string]*Perm
-	From    string
+	CreatedAt time.Time
+	UpdatedAt string
+	Id1       bson.ObjectId
+	Id2       primitive.ObjectID
+	Id3       *primitive.ObjectID
+	Id1Hex    string
+	Id2Hex    string
+	Role      string
+	Roll      *int
+	Actions   []string
+	Perms     []*Perm
+	PermMap   map[string]*Perm
+	From      string
 	EmbedFields
 	Child *AccessRolePerms
 }
