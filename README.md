@@ -21,6 +21,10 @@
 
 <br>
 
+>  :rage::rage::rage:Dumping nuclear wastewater into the ocean, damn it! :bomb::japan::boom::triumph::triumph::triumph:
+
+
+
 ## :dart: About ##
 
 GoCopy is a simple golang repo for copying slice to slice, map to map, struct to struct, struct to map or bson.M.
