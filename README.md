@@ -1,3 +1,5 @@
+
+
 <h1 align="center">GoCopy</h1>
 
 <p align="center">
@@ -41,9 +43,9 @@ GoCopy is a simple golang repo for copying slice to slice, map to map, struct to
 
 ​	:heavy_check_mark: copy struct to map/bson.M by field name<br/>
 
-​	:heavy_check_mark: support append values, change filed-case, rename or ignore any field when copying<br/>
+​	:heavy_check_mark: support append values, change field-case, rename or ignore any field when copying<br/>
 
-​	:heavy_check_mark: support customized convert function to transform any filed to what you want<br/>
+​	:heavy_check_mark: support customized convert function to transform any field to what you want<br/>
 
 
 
@@ -68,7 +70,7 @@ go get -u github.com/young2j/gocopy@latest
 
 > Note: The arg `to` must be a reference value(usually `&to`), or copy maybe fail.
 
-see more  at [`./example`](./example)
+see more at [`./example`](./example)
 
 ```shell
 # path/to/example
