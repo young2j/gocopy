@@ -25,6 +25,9 @@ var caseFunc = map[string]func(s string) string{
 
 // copyStruct2Map copy struct to map
 func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
+	if beginPointerCopy(fromValue, toValue, opt) {
+		return
+	}
 	fromValue = indirectValue(fromValue)
 	toValue = indirectValue(toValue)
 	// type
@@ -50,10 +53,17 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 		}
 
 		// field case
+		tagName, omitEmpty, skip := fieldTag(fromField)
+		if skip {
+			continue
+		}
 		if opt.ToCase == "" {
 			opt.ToCase = "LowerCamel"
 		}
-		toFieldName := caseFunc[opt.ToCase](fromField.Name)
+		toFieldName := tagName
+		if toFieldName == "" {
+			toFieldName = caseFunc[opt.ToCase](fromField.Name)
+		}
 		// the specified toName has the highest priority
 		toName, ok := opt.NameFromTo[fromField.Name]
 		if ok {
@@ -65,7 +75,7 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 
 		// whether ignore zero value
 		fromFV := fromValue.FieldByIndex(fromField.Index)
-		if fromFV.IsZero() && opt.IgnoreZero {
+		if fromFV.IsZero() && (opt.IgnoreZero || omitEmpty) {
 			continue
 		}
 		// ignore invalid source field
@@ -218,7 +228,7 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 			dest.Set(indirectValue(reflect.ValueOf(toV.Interface()))) // slice append slice
 
 			if !fromElemIsStruct {
-				copySlice(dest, fromFieldValue, opt)
+				copySlice(dest, fromFV, opt)
 			} else {
 				for i := 0; i < fromFieldValue.Len(); i++ {
 					if !fromFieldValue.Index(i).IsValid() {
@@ -287,7 +297,7 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 			}
 
 			if !fromElemIsStruct {
-				copyMap(dest, fromFieldValue, opt)
+				copyMap(dest, fromFV, opt)
 			} else {
 				fromKVIter := fromFieldValue.MapRange()
 				for fromKVIter.Next() {
@@ -335,7 +345,7 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 
 			dest := indirectValue(reflect.New(toType))
 			dest.Set(indirectValue(reflect.ValueOf(toV.Interface())))
-			copyStruct2Map(dest, fromFieldValue, opt)
+			copyStruct2Map(dest, fromFV, opt)
 			if toVIsPtr {
 				dest = dest.Addr()
 			}

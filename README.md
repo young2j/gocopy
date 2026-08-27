@@ -47,6 +47,8 @@ GoCopy is a simple golang repo for copying slice to slice, map to map, struct to
 
 ​	:heavy_check_mark: support customized convert function to transform any filed to what you want<br/>
 
+​	:heavy_check_mark: support `gocopy`, `json`, and `bson` field tags, including `omitempty`<br/>
+
 
 
 ## :white_check_mark: Requirements ##
@@ -67,8 +69,12 @@ go get -u github.com/young2j/gocopy@latest
 
 * `Copy(to, from interface{})`
 * `CopyWithOption(to,from interface{},opt *Option)`
+* `CopyE(to, from interface{}) error`
+* `CopyWithOptionE(to, from interface{}, opt *Option) error`
 
 Supported conversions include slice→slice, map→map, map→struct, struct→struct, and struct→map/bson.M.
+
+Field names may be controlled with `gocopy:"name,omitempty"`; `json` and `bson` tags are used as fallbacks.
 
 > Note: The arg `to` must be a reference value(usually `&to`), or copy maybe fail.
 

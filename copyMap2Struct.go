@@ -7,14 +7,21 @@ import (
 
 // copyMap2Struct copies string-keyed map values into matching exported struct fields.
 func copyMap2Struct(toValue, fromValue reflect.Value, opt *Option) {
+	if beginPointerCopy(fromValue, toValue, opt) {
+		return
+	}
 	fromValue = indirectValue(fromValue)
 	toValue = indirectValue(toValue)
-	if fromValue.Kind() != reflect.Map || toValue.Kind() != reflect.Struct || fromValue.Type().Key().Kind() != reflect.String {
+	if fromValue.Kind() != reflect.Map || toValue.Kind() != reflect.Struct {
 		return
 	}
 
 	for _, field := range deepFields(toValue.Type()) {
-		sourceName, sourceValue, ok := mapField(fromValue, field.Name, opt)
+		_, _, skip := fieldTag(field)
+		if skip {
+			continue
+		}
+		sourceName, sourceValue, ok := mapField(fromValue, field, opt)
 		if !ok {
 			continue
 		}
@@ -53,16 +60,21 @@ func copyMap2Struct(toValue, fromValue reflect.Value, opt *Option) {
 	}
 }
 
-func mapField(fromValue reflect.Value, fieldName string, opt *Option) (string, reflect.Value, bool) {
-	if fromValue.Type().Key().Kind() != reflect.String {
-		return "", reflect.Value{}, false
-	}
-
+func mapField(fromValue reflect.Value, field reflect.StructField, opt *Option) (string, reflect.Value, bool) {
+	fieldName := field.Name
 	names := make([]string, 0, 3)
 	for source, destination := range opt.NameFromTo {
 		if destination == fieldName {
 			names = append(names, source)
 		}
+	}
+	if tagName, _, _ := fieldTag(field); tagName != "" {
+		for source, destination := range opt.NameFromTo {
+			if destination == tagName {
+				names = append(names, source)
+			}
+		}
+		names = append(names, tagName)
 	}
 	names = append(names, fieldName)
 	caseName := fieldName
@@ -75,17 +87,41 @@ func mapField(fromValue reflect.Value, fieldName string, opt *Option) (string, r
 		names = append(names, caseName)
 	}
 
-	keyType := fromValue.Type().Key()
 	for _, name := range names {
-		key := reflect.ValueOf(name)
-		if key.Type() != keyType {
-			key = key.Convert(keyType)
-		}
-		if value := fromValue.MapIndex(key); value.IsValid() {
+		if value, ok := mapLookup(fromValue, name); ok {
 			return name, value, true
 		}
 	}
 	return "", reflect.Value{}, false
+}
+
+func mapLookup(fromValue reflect.Value, name string) (reflect.Value, bool) {
+	keyType := fromValue.Type().Key()
+	if keyType.Kind() == reflect.String {
+		key := reflect.ValueOf(name)
+		if key.Type() != keyType {
+			key = key.Convert(keyType)
+		}
+		value := fromValue.MapIndex(key)
+		return value, value.IsValid()
+	}
+	if keyType.Kind() != reflect.Interface {
+		return reflect.Value{}, false
+	}
+	iter := fromValue.MapRange()
+	for iter.Next() {
+		key := iter.Key()
+		if key.Kind() == reflect.Interface {
+			if key.IsNil() {
+				continue
+			}
+			key = key.Elem()
+		}
+		if key.Kind() == reflect.String && key.String() == name {
+			return iter.Value(), true
+		}
+	}
+	return reflect.Value{}, false
 }
 
 func assignMapValue(dest, source reflect.Value, opt *Option) bool {
@@ -113,6 +149,10 @@ func assignMapValue(dest, source reflect.Value, opt *Option) bool {
 		}
 		if dest.IsNil() {
 			dest.Set(reflect.New(dest.Type().Elem()))
+		}
+		if source.Kind() == reflect.Map && dest.Elem().Kind() == reflect.Struct {
+			copyMap2Struct(dest, source, opt)
+			return true
 		}
 		return assignMapValue(dest.Elem(), source, opt)
 	}

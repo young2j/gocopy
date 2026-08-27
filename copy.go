@@ -7,6 +7,7 @@
 package gocopy
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -25,13 +26,43 @@ type Option struct {
 	IgnoreFields []string // slice of ignore field name
 	IgnoreLevel  int      // field in IgnoreFields that embed level is only less than or equal this value will be ignored.
 	ignoreFields map[string]int
+	state        *copyState
 }
 
 func Copy(to, from interface{}) {
 	CopyWithOption(to, from, &Option{})
 }
 
+// CopyE copies values and returns conversion errors instead of panicking.
+func CopyE(to, from interface{}) (err error) {
+	return CopyWithOptionE(to, from, &Option{})
+}
+
+// CopyWithOptionE is the error-returning form of CopyWithOption.
+func CopyWithOptionE(to, from interface{}, opt *Option) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			if recoveredErr, ok := recovered.(error); ok {
+				err = recoveredErr
+			} else {
+				err = fmt.Errorf("%v", recovered)
+			}
+		}
+	}()
+	CopyWithOption(to, from, opt)
+	return nil
+}
+
 func CopyWithOption(to, from interface{}, opt *Option) {
+	root := opt.state == nil
+	if root {
+		opt.state = copyStatePool.Get().(*copyState)
+		defer func() {
+			opt.state.reset()
+			copyStatePool.Put(opt.state)
+			opt.state = nil
+		}()
+	}
 	// init option
 	if len(opt.IgnoreFields) > 0 {
 		opt.ignoreFields = make(map[string]int)

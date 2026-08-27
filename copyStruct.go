@@ -18,6 +18,9 @@ var (
 
 // copyStruct copy struct to struct
 func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
+	if beginPointerCopy(fromValue, toValue, opt) {
+		return
+	}
 	fromValue = indirectValue(fromValue)
 	toValue = indirectValue(toValue)
 	// type
@@ -186,10 +189,10 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 				switch fromFieldKind {
 				// slice append slice, need to avoid zero slice
 				case reflect.Slice:
-					copySlice(toFieldValue, fromFieldValue, opt)
+					copySlice(toFieldValue, fromFValue, opt)
 				// map set kv, need to avoid nil map
 				case reflect.Map:
-					copyMap(toFieldValue, fromFieldValue, opt)
+					copyMap(toFieldValue, fromFValue, opt)
 				default:
 					if toFieldIsPtr {
 						// like string -> *string
@@ -252,13 +255,13 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 			toFieldKind := toFieldType.Kind()
 			// 1. slice to slice
 			if toFieldKind == reflect.Slice && fromFieldKind == reflect.Slice {
-				copySlice(toFieldValue, fromFieldValue, opt)
+				copySlice(toFieldValue, fromFValue, opt)
 				// 2. map to map
 			} else if toFieldKind == reflect.Map && fromFieldKind == reflect.Map {
-				copyMap(toFieldValue, fromFieldValue, opt)
+				copyMap(toFieldValue, fromFValue, opt)
 				// 3. struct to struct
 			} else if toFieldKind == reflect.Struct && fromFieldKind == reflect.Struct {
-				copyStruct(toFieldValue, fromFieldValue, opt)
+				copyStruct(toFieldValue, fromFValue, opt)
 			}
 		}
 	}

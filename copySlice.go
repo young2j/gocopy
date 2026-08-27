@@ -13,6 +13,9 @@ import (
 
 // copySlice copy slice to slice
 func copySlice(toValue, fromValue reflect.Value, opt *Option) {
+	if beginPointerCopy(fromValue, toValue, opt) {
+		return
+	}
 	// dereference ptr value
 	fromValue = indirectValue(fromValue)
 	toValue = indirectValue(toValue)
