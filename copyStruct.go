@@ -26,25 +26,44 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 	// type
 	fromType, _ := indirectType(fromValue.Type())
 	toType, _ := indirectType(toValue.Type())
+	if fromType == toType && plainValueType(fromType) && canDirectStructCopy(opt) && toValue.CanSet() {
+		toValue.Set(fromValue)
+		return
+	}
 
-	// handle every struct field
+	// Handle every struct field. The common path has no rename rules, so use a
+	// cached source/target field pairing instead of a per-field FieldByName.
+	var pairs []fieldPair
+	if len(opt.NameFromTo) == 0 {
+		pairs = fieldPairs(fromType, toType)
+	}
 	fromFields := deepFields(fromType)
+	ignored := ignoredFields(opt)
 	for i := 0; i < len(fromFields); i++ {
 		fromField := fromFields[i]
 		// ignore field to skip copy
-		if level, ok := opt.ignoreFields[fromField.Name]; ok {
-			opt.ignoreFields[fromField.Name]++
+		if level, ok := ignored[fromField.Name]; ok {
+			ignored[fromField.Name]++
 			if level <= opt.IgnoreLevel {
 				continue
 			}
 		}
 		// from field to field
-		toFieldName, ok := opt.NameFromTo[fromField.Name]
-		if !ok {
-			toFieldName = fromField.Name
+		var toField reflect.StructField
+		var ok bool
+		if len(opt.NameFromTo) == 0 {
+			if i >= len(pairs) || !pairs[i].ok {
+				continue
+			}
+			toField = pairs[i].to
+			ok = true
+		} else {
+			toFieldName, mapped := opt.NameFromTo[fromField.Name]
+			if !mapped {
+				toFieldName = fromField.Name
+			}
+			toField, ok = fieldByName(toType, toFieldName)
 		}
-		// whether field is in toType
-		toField, ok := fieldByName(toType, toFieldName)
 		if !ok {
 			continue
 		}
@@ -52,26 +71,26 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 		fromFieldValue := indirectValue(fromFValue)
 		toFieldValue := toValue.FieldByIndex(toField.Index)
 
-		fromFieldType, _ := indirectType(fromField.Type)
-		toFieldType, toFieldIsPtr := indirectType(toField.Type)
-
-		// pointer value like *string *int
-		if toFieldIsPtr && toFieldValue.IsNil() {
-			toNewValue := reflect.New(toFieldType)
-			toFieldValue.Set(toNewValue)
+		fromFieldType, toFieldType := fromField.Type, toField.Type
+		toFieldIsPtr := false
+		mode := fieldCopyNested
+		if len(opt.NameFromTo) == 0 && i < len(pairs) && pairs[i].ok {
+			fromFieldType = pairs[i].fromType
+			toFieldType = pairs[i].toType
+			toFieldIsPtr = pairs[i].toPtr
+			mode = pairs[i].mode
+		} else {
+			fromFieldType, _ = indirectType(fromFieldType)
+			toFieldType, toFieldIsPtr = indirectType(toFieldType)
+			if fromFieldType.AssignableTo(toFieldType) {
+				mode = fieldCopyAssignable
+			} else if fromFieldType.ConvertibleTo(toFieldType) {
+				mode = fieldCopyConvertible
+			}
 		}
 
 		if !toFieldValue.CanSet() || !fromFieldValue.IsValid() {
 			continue
-		}
-
-		// avoid tofield is zero slice/map, set on zero value will panic
-		if toFieldValue.IsZero() {
-			if toFieldIsPtr {
-				toFieldValue.Set(reflect.New(toField.Type))
-			} else {
-				toFieldValue.Set(indirectValue(reflect.New(toField.Type)))
-			}
 		}
 
 		// convert field value by customized func
@@ -170,7 +189,7 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 
 		// can direct assign
 		// 可直接赋值拷贝
-		if fromFieldType.AssignableTo(toFieldType) {
+		if mode == fieldCopyAssignable {
 			if !opt.Append { // not append
 				if toFieldIsPtr {
 					// like string -> *string
@@ -185,6 +204,9 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 					toFieldValue.Set(fromFieldValue)
 				}
 			} else { // append mode
+				if toFieldIsPtr && toFieldValue.IsNil() {
+					toFieldValue.Set(reflect.New(toFieldType))
+				}
 				fromFieldKind := fromFieldType.Kind()
 				switch fromFieldKind {
 				// slice append slice, need to avoid zero slice
@@ -210,7 +232,7 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 			}
 			// can convert field type
 			// 类型可转换拷贝
-		} else if fromFieldType.ConvertibleTo(toFieldType) {
+		} else if mode == fieldCopyConvertible {
 			convertValue := fromFieldValue.Convert(toFieldType)
 			if !opt.Append { // not append
 				if toFieldIsPtr {
@@ -226,6 +248,9 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 					toFieldValue.Set(convertValue) // set to converted value
 				}
 			} else { // append mode
+				if toFieldIsPtr && toFieldValue.IsNil() {
+					toFieldValue.Set(reflect.New(toFieldType))
+				}
 				fromFieldKind := fromFieldType.Kind()
 				switch fromFieldKind {
 				// slice append slice, need to avoid zero slice
@@ -251,6 +276,9 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 			}
 		} else {
 			// can not directly assign or convert
+			if toFieldIsPtr && toFieldValue.IsNil() {
+				toFieldValue.Set(reflect.New(toFieldType))
+			}
 			fromFieldKind := fromFieldType.Kind()
 			toFieldKind := toFieldType.Kind()
 			// 1. slice to slice

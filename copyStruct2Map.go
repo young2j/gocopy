@@ -34,35 +34,63 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 	fromType, _ := indirectType(fromValue.Type())
 	toType, _ := indirectType(toValue.Type())
 
-	fromFields := deepFields(fromType)
+	caseName := opt.ToCase
+	if caseName == "" {
+		caseName = "LowerCamel"
+	}
+	var fromFields []fieldInfo
+	var plans []mapFieldPlan
+	if len(opt.NameFromTo) == 0 {
+		plans = mapFieldPlans(fromType, toType, caseName)
+	} else {
+		fromFields = fieldInfos(fromType)
+	}
 
 	// avoid tomap is nil or not append
 	if toValue.IsNil() || !opt.Append {
-		toNewMap := reflect.MakeMapWithSize(toType, len(fromFields))
+		fieldCapacity := len(fromFields)
+		if plans != nil {
+			fieldCapacity = len(plans)
+		}
+		toNewMap := reflect.MakeMapWithSize(toType, fieldCapacity)
 		toValue.Set(toNewMap)
 	}
 
-	for i := 0; i < len(fromFields); i++ {
-		fromField := fromFields[i]
+	fieldCount := len(fromFields)
+	if plans != nil {
+		fieldCount = len(plans)
+	}
+	ignored := ignoredFields(opt)
+	for i := 0; i < fieldCount; i++ {
+		info := fieldInfo{}
+		toFieldName := ""
+		toKey := reflect.Value{}
+		if plans != nil {
+			info = plans[i].info
+			toFieldName = plans[i].name
+			toKey = plans[i].key
+		} else {
+			info = fromFields[i]
+		}
+		fromField := info.field
 		// ignore field to skip copy
-		if level, ok := opt.ignoreFields[fromField.Name]; ok {
-			opt.ignoreFields[fromField.Name]++
+		if level, ok := ignored[fromField.Name]; ok {
+			ignored[fromField.Name]++
 			if level <= opt.IgnoreLevel {
 				continue
 			}
 		}
 
 		// field case
-		tagName, omitEmpty, skip := fieldTag(fromField)
-		if skip {
+		tagName, omitEmpty := info.tagName, info.omitEmpty
+		if info.skip {
 			continue
 		}
-		if opt.ToCase == "" {
-			opt.ToCase = "LowerCamel"
-		}
-		toFieldName := tagName
-		if toFieldName == "" {
-			toFieldName = caseFunc[opt.ToCase](fromField.Name)
+		toFieldName = tagName
+		if plans != nil {
+			toFieldName = plans[i].name
+		} else if toFieldName == "" {
+			toFieldName = caseFunc[caseName](fromField.Name)
 		}
 		// the specified toName has the highest priority
 		toName, ok := opt.NameFromTo[fromField.Name]
@@ -71,7 +99,12 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 		}
 
 		// target field name
-		toKey := reflect.ValueOf(toFieldName)
+		if !toKey.IsValid() {
+			toKey = reflect.ValueOf(toFieldName)
+			if toKey.Type() != toType.Key() {
+				toKey = toKey.Convert(toType.Key())
+			}
+		}
 
 		// whether ignore zero value
 		fromFV := fromValue.FieldByIndex(fromField.Index)

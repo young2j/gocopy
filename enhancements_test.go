@@ -2,6 +2,7 @@ package gocopy
 
 import (
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -58,6 +59,70 @@ func TestCopyEReportsErrors(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "time") {
 		t.Fatalf("expected time conversion error, got %v", err)
+	}
+}
+
+func TestCopyWithOptionCanBeReused(t *testing.T) {
+	type source struct {
+		Keep int
+		Skip int
+	}
+	type destination struct {
+		Keep int
+		Skip int
+	}
+
+	opt := &Option{IgnoreFields: []string{"Skip"}}
+	input := source{Keep: 1, Skip: 2}
+	var first, second destination
+	CopyWithOption(&first, input, opt)
+	CopyWithOption(&second, input, opt)
+
+	if len(opt.IgnoreFields) != 1 || first.Keep != 1 || first.Skip != 0 || second.Keep != 1 || second.Skip != 0 {
+		t.Fatalf("reused option changed behavior: option=%#v first=%#v second=%#v", opt, first, second)
+	}
+}
+
+func TestCopyWithOptionConcurrentReuse(t *testing.T) {
+	type source struct {
+		Keep int
+		Skip int
+	}
+	type destination struct {
+		Keep int
+		Skip int
+	}
+
+	opt := &Option{IgnoreFields: []string{"Skip"}}
+	input := source{Keep: 1, Skip: 2}
+	var wait sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			var output destination
+			CopyWithOption(&output, input, opt)
+			if output.Keep != 1 || output.Skip != 0 {
+				t.Errorf("concurrent option reuse changed behavior: %#v", output)
+			}
+		}()
+	}
+	wait.Wait()
+}
+
+func TestMapToStructLargeInterfaceKeyMap(t *testing.T) {
+	type destination struct {
+		A string
+		B string
+		C string
+		D string
+		E string
+	}
+	input := map[interface{}]interface{}{"a": "1", "b": "2", "c": "3", "d": "4", "e": "5"}
+	var output destination
+	Copy(&output, input)
+	if output.A != "1" || output.B != "2" || output.C != "3" || output.D != "4" || output.E != "5" {
+		t.Fatalf("interface-key map was not copied: %#v", output)
 	}
 }
 

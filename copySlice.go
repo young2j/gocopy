@@ -28,9 +28,20 @@ func copySlice(toValue, fromValue reflect.Value, opt *Option) {
 	fromElemType := fromType.Elem()
 	toElemType := toType.Elem()
 
-	// if append is false
+	// Reuse destination capacity when possible and grow once for element-wise
+	// conversions. This avoids one reflect.Append allocation per element.
+	fromLen := fromValue.Len()
 	if !opt.Append {
-		toValue.Set(toValue.Slice(0, 0))
+		if toValue.Cap() < fromLen {
+			toValue.Set(reflect.MakeSlice(toType, 0, fromLen))
+		} else {
+			toValue.SetLen(0)
+		}
+	} else if toValue.Cap() < toValue.Len()+fromLen {
+		length := toValue.Len()
+		grown := reflect.MakeSlice(toType, length, length+fromLen)
+		reflect.Copy(grown, toValue)
+		toValue.Set(grown)
 	}
 	// if entire slice can assignable
 	if fromType.AssignableTo(toType) {
@@ -63,18 +74,21 @@ func copySlice(toValue, fromValue reflect.Value, opt *Option) {
 			toElemType, elemIsPtr := indirectType(toElemType)
 			fromElemKind := fromElemType.Kind()
 			toElemKind := toElemType.Kind()
+			start := toValue.Len()
+			toValue.SetLen(start + fromValue.Len())
+			out := start
 			// a. slice to slice
 			if toElemKind == reflect.Slice && fromElemKind == reflect.Slice {
 				for i := 0; i < fromValue.Len(); i++ {
 					if !fromValue.Index(i).IsValid() {
 						continue
 					}
-					toElemValue := reflect.New(toElemType)
-					copySlice(toElemValue, fromValue.Index(i), opt)
-					if !elemIsPtr {
-						toElemValue = indirectValue(toElemValue)
+					toElemValue := toValue.Index(out)
+					if elemIsPtr {
+						toElemValue.Set(reflect.New(toElemType))
 					}
-					toValue.Set(reflect.Append(toValue, toElemValue))
+					copySlice(toElemValue, fromValue.Index(i), opt)
+					out++
 				}
 				// b. map to map
 			} else if toElemKind == reflect.Map && fromElemKind == reflect.Map {
@@ -82,12 +96,12 @@ func copySlice(toValue, fromValue reflect.Value, opt *Option) {
 					if !fromValue.Index(i).IsValid() {
 						continue
 					}
-					toElemValue := reflect.New(toElemType)
-					copyMap(toElemValue, fromValue.Index(i), opt)
-					if !elemIsPtr {
-						toElemValue = indirectValue(toElemValue)
+					toElemValue := toValue.Index(out)
+					if elemIsPtr {
+						toElemValue.Set(reflect.New(toElemType))
 					}
-					toValue.Set(reflect.Append(toValue, toElemValue))
+					copyMap(toElemValue, fromValue.Index(i), opt)
+					out++
 				}
 				// c. struct to struct
 			} else if toElemKind == reflect.Struct && fromElemKind == reflect.Struct {
@@ -95,13 +109,16 @@ func copySlice(toValue, fromValue reflect.Value, opt *Option) {
 					if !fromValue.Index(i).IsValid() {
 						continue
 					}
-					toElemValue := reflect.New(toElemType)
-					copyStruct(toElemValue, fromValue.Index(i), opt)
-					if !elemIsPtr {
-						toElemValue = indirectValue(toElemValue)
+					toElemValue := toValue.Index(out)
+					if elemIsPtr {
+						toElemValue.Set(reflect.New(toElemType))
 					}
-					toValue.Set(reflect.Append(toValue, toElemValue))
+					copyStruct(toElemValue, fromValue.Index(i), opt)
+					out++
 				}
+			}
+			if out != start+fromValue.Len() {
+				toValue.SetLen(out)
 			}
 		}
 	}

@@ -25,7 +25,6 @@ type Option struct {
 	IgnoreZero   bool     // ignore zero value
 	IgnoreFields []string // slice of ignore field name
 	IgnoreLevel  int      // field in IgnoreFields that embed level is only less than or equal this value will be ignored.
-	ignoreFields map[string]int
 	state        *copyState
 }
 
@@ -54,33 +53,48 @@ func CopyWithOptionE(to, from interface{}, opt *Option) (err error) {
 }
 
 func CopyWithOption(to, from interface{}, opt *Option) {
-	root := opt.state == nil
-	if root {
-		opt.state = copyStatePool.Get().(*copyState)
-		defer func() {
-			opt.state.reset()
-			copyStatePool.Put(opt.state)
-			opt.state = nil
-		}()
+	if opt == nil {
+		opt = &Option{}
 	}
-	// init option
-	if len(opt.IgnoreFields) > 0 {
-		opt.ignoreFields = make(map[string]int)
-		for _, f := range opt.IgnoreFields {
-			opt.ignoreFields[f] = 0
+	if opt.state != nil {
+		copyWithOptionValues(reflect.ValueOf(to), reflect.ValueOf(from), opt)
+		return
+	}
+	// Work on a private option copy so callers can safely reuse an Option,
+	// including from concurrent goroutines. Nested calls receive the runtime
+	// copy and reuse its state through the fast path below.
+	runtimeOpt := *opt
+	runtimeOpt.state = copyStatePool.Get().(*copyState)
+	if len(runtimeOpt.IgnoreFields) > 0 {
+		runtimeOpt.state.ignoreFields = make(map[string]int, len(runtimeOpt.IgnoreFields))
+		for _, field := range runtimeOpt.IgnoreFields {
+			runtimeOpt.state.ignoreFields[field] = 0
 		}
-		opt.IgnoreFields = nil
 	}
+	if len(runtimeOpt.NameFromTo) > 0 {
+		runtimeOpt.state.reverseNames = make(map[string][]string, len(runtimeOpt.NameFromTo))
+		for source, destination := range runtimeOpt.NameFromTo {
+			runtimeOpt.state.reverseNames[destination] = append(runtimeOpt.state.reverseNames[destination], source)
+		}
+	}
+	defer func() {
+		runtimeOpt.state.reset()
+		copyStatePool.Put(runtimeOpt.state)
+	}()
+	copyWithOptionValues(reflect.ValueOf(to), reflect.ValueOf(from), &runtimeOpt)
+}
 
-	fromValue := reflect.ValueOf(from)
-	toValue := reflect.ValueOf(to)
+func copyWithOptionValues(toValue, fromValue reflect.Value, opt *Option) {
+	if opt == nil {
+		return
+	}
 	// avoid copy from nil
 	if !indirectValue(fromValue).IsValid() {
 		return
 	}
 
-	fromType, _ := indirectType(reflect.TypeOf(from))
-	toType, _ := indirectType(reflect.TypeOf(to))
+	fromType, _ := indirectType(fromValue.Type())
+	toType, _ := indirectType(toValue.Type())
 	fromKind := fromType.Kind()
 	toKind := toType.Kind()
 

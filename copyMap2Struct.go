@@ -16,17 +16,36 @@ func copyMap2Struct(toValue, fromValue reflect.Value, opt *Option) {
 		return
 	}
 
-	for _, field := range deepFields(toValue.Type()) {
-		_, _, skip := fieldTag(field)
-		if skip {
+	infos := fieldInfos(toValue.Type())
+	var keyIndex map[string]reflect.Value
+	if fromValue.Type().Key().Kind() == reflect.Interface && fromValue.Len() > 4 {
+		keyIndex = make(map[string]reflect.Value, fromValue.Len())
+		iter := fromValue.MapRange()
+		for iter.Next() {
+			key := iter.Key()
+			if key.Kind() == reflect.Interface {
+				if key.IsNil() {
+					continue
+				}
+				key = key.Elem()
+			}
+			if key.Kind() == reflect.String {
+				keyIndex[key.String()] = iter.Value()
+			}
+		}
+	}
+	ignored := ignoredFields(opt)
+	for _, info := range infos {
+		field := info.field
+		if info.skip {
 			continue
 		}
-		sourceName, sourceValue, ok := mapField(fromValue, field, opt)
+		sourceName, sourceValue, ok := mapField(fromValue, field, info.tagName, keyIndex, opt)
 		if !ok {
 			continue
 		}
-		if level, ignored := opt.ignoreFields[sourceName]; ignored {
-			opt.ignoreFields[sourceName]++
+		if level, ignoredField := ignored[sourceName]; ignoredField {
+			ignored[sourceName]++
 			if level <= opt.IgnoreLevel {
 				continue
 			}
@@ -60,19 +79,21 @@ func copyMap2Struct(toValue, fromValue reflect.Value, opt *Option) {
 	}
 }
 
-func mapField(fromValue reflect.Value, field reflect.StructField, opt *Option) (string, reflect.Value, bool) {
+func mapField(fromValue reflect.Value, field reflect.StructField, tagName string, keyIndex map[string]reflect.Value, opt *Option) (string, reflect.Value, bool) {
 	fieldName := field.Name
-	names := make([]string, 0, 3)
-	for source, destination := range opt.NameFromTo {
-		if destination == fieldName {
-			names = append(names, source)
-		}
+	// Most copies have no rename rules. Keep the candidate names on the stack
+	// and allocate only when a large rename table requires more space.
+	var nameBuf [6]string
+	names := nameBuf[:0]
+	if len(opt.NameFromTo)*2+3 > len(nameBuf) {
+		names = make([]string, 0, len(opt.NameFromTo)*2+3)
 	}
-	if tagName, _, _ := fieldTag(field); tagName != "" {
-		for source, destination := range opt.NameFromTo {
-			if destination == tagName {
-				names = append(names, source)
-			}
+	if sources := reverseNames(opt)[fieldName]; len(sources) > 0 {
+		names = append(names, sources...)
+	}
+	if tagName != "" {
+		if sources := reverseNames(opt)[tagName]; len(sources) > 0 {
+			names = append(names, sources...)
 		}
 		names = append(names, tagName)
 	}
@@ -88,7 +109,11 @@ func mapField(fromValue reflect.Value, field reflect.StructField, opt *Option) (
 	}
 
 	for _, name := range names {
-		if value, ok := mapLookup(fromValue, name); ok {
+		if keyIndex != nil {
+			if value, ok := keyIndex[name]; ok {
+				return name, value, true
+			}
+		} else if value, ok := mapLookup(fromValue, name); ok {
 			return name, value, true
 		}
 	}
