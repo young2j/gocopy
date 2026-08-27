@@ -1,0 +1,253 @@
+package gocopy
+
+import (
+	"reflect"
+	"time"
+)
+
+// copyMap2Struct copies string-keyed map values into matching exported struct fields.
+func copyMap2Struct(toValue, fromValue reflect.Value, opt *Option) {
+	fromValue = indirectValue(fromValue)
+	toValue = indirectValue(toValue)
+	if fromValue.Kind() != reflect.Map || toValue.Kind() != reflect.Struct || fromValue.Type().Key().Kind() != reflect.String {
+		return
+	}
+
+	for _, field := range deepFields(toValue.Type()) {
+		sourceName, sourceValue, ok := mapField(fromValue, field.Name, opt)
+		if !ok {
+			continue
+		}
+		if level, ignored := opt.ignoreFields[sourceName]; ignored {
+			opt.ignoreFields[sourceName]++
+			if level <= opt.IgnoreLevel {
+				continue
+			}
+		}
+
+		dest := toValue.FieldByIndex(field.Index)
+		if !dest.CanSet() {
+			continue
+		}
+		if valueIsZero(sourceValue) && opt.IgnoreZero {
+			continue
+		}
+
+		if convertFunc, ok := opt.Converters[sourceName]; ok {
+			setMapResult(dest, convertFunc(mapInterfaceValue(sourceValue)), opt)
+			continue
+		}
+		if timeMap, ok := opt.StringToTime[sourceName]; ok {
+			if value, ok := mapInterfaceValue(sourceValue).(string); ok && value != "" {
+				setMapResult(dest, parseMapTime(value, timeMap), opt)
+			}
+			continue
+		}
+		if timeMap, ok := opt.TimeToString[sourceName]; ok {
+			if value, ok := mapInterfaceValue(sourceValue).(time.Time); ok {
+				setMapResult(dest, formatMapTime(value, timeMap), opt)
+			}
+			continue
+		}
+		assignMapValue(dest, sourceValue, opt)
+	}
+}
+
+func mapField(fromValue reflect.Value, fieldName string, opt *Option) (string, reflect.Value, bool) {
+	if fromValue.Type().Key().Kind() != reflect.String {
+		return "", reflect.Value{}, false
+	}
+
+	names := make([]string, 0, 3)
+	for source, destination := range opt.NameFromTo {
+		if destination == fieldName {
+			names = append(names, source)
+		}
+	}
+	names = append(names, fieldName)
+	caseName := fieldName
+	if opt.ToCase == "" {
+		caseName = caseFunc["LowerCamel"](fieldName)
+	} else if convertCase, ok := caseFunc[opt.ToCase]; ok {
+		caseName = convertCase(fieldName)
+	}
+	if caseName != fieldName {
+		names = append(names, caseName)
+	}
+
+	keyType := fromValue.Type().Key()
+	for _, name := range names {
+		key := reflect.ValueOf(name)
+		if key.Type() != keyType {
+			key = key.Convert(keyType)
+		}
+		if value := fromValue.MapIndex(key); value.IsValid() {
+			return name, value, true
+		}
+	}
+	return "", reflect.Value{}, false
+}
+
+func assignMapValue(dest, source reflect.Value, opt *Option) bool {
+	if !dest.CanSet() || !source.IsValid() {
+		return false
+	}
+	for source.Kind() == reflect.Interface {
+		if source.IsNil() {
+			dest.Set(reflect.Zero(dest.Type()))
+			return true
+		}
+		source = source.Elem()
+	}
+	if source.Type().AssignableTo(dest.Type()) {
+		dest.Set(source)
+		return true
+	}
+	if dest.Kind() == reflect.Ptr {
+		if source.Kind() == reflect.Ptr {
+			if source.IsNil() {
+				dest.Set(reflect.Zero(dest.Type()))
+				return true
+			}
+			source = source.Elem()
+		}
+		if dest.IsNil() {
+			dest.Set(reflect.New(dest.Type().Elem()))
+		}
+		return assignMapValue(dest.Elem(), source, opt)
+	}
+	if source.Kind() == reflect.Ptr {
+		if source.IsNil() {
+			dest.Set(reflect.Zero(dest.Type()))
+			return true
+		}
+		return assignMapValue(dest, source.Elem(), opt)
+	}
+	if source.Type().ConvertibleTo(dest.Type()) {
+		dest.Set(source.Convert(dest.Type()))
+		return true
+	}
+
+	switch {
+	case dest.Kind() == reflect.Struct && source.Kind() == reflect.Map:
+		copyMap2Struct(dest, source, opt)
+		return true
+	case dest.Kind() == reflect.Struct && source.Kind() == reflect.Struct:
+		copyStruct(dest, source, opt)
+		return true
+	case dest.Kind() == reflect.Map && source.Kind() == reflect.Map:
+		return assignMapToMap(dest, source, opt)
+	case dest.Kind() == reflect.Slice && source.Kind() == reflect.Slice:
+		return assignMapToSlice(dest, source, opt)
+	}
+	return false
+}
+
+func setMapResult(dest reflect.Value, value interface{}, opt *Option) {
+	if value == nil {
+		dest.Set(reflect.Zero(dest.Type()))
+		return
+	}
+	assignMapValue(dest, reflect.ValueOf(value), opt)
+}
+
+func assignMapToSlice(dest, source reflect.Value, opt *Option) bool {
+	if source.Type().AssignableTo(dest.Type()) {
+		dest.Set(source)
+		return true
+	}
+	if opt == nil || !opt.Append {
+		dest.Set(reflect.MakeSlice(dest.Type(), 0, source.Len()))
+	}
+	for i := 0; i < source.Len(); i++ {
+		element := reflect.New(dest.Type().Elem()).Elem()
+		if !assignMapValue(element, source.Index(i), opt) {
+			return false
+		}
+		dest.Set(reflect.Append(dest, element))
+	}
+	return true
+}
+
+func assignMapToMap(dest, source reflect.Value, opt *Option) bool {
+	if source.Type().AssignableTo(dest.Type()) {
+		dest.Set(source)
+		return true
+	}
+	if opt == nil || !opt.Append || dest.IsNil() {
+		dest.Set(reflect.MakeMapWithSize(dest.Type(), source.Len()))
+	}
+	iter := source.MapRange()
+	for iter.Next() {
+		key := iter.Key()
+		if !key.Type().AssignableTo(dest.Type().Key()) {
+			if !key.Type().ConvertibleTo(dest.Type().Key()) {
+				return false
+			}
+			key = key.Convert(dest.Type().Key())
+		}
+		element := reflect.New(dest.Type().Elem()).Elem()
+		if !assignMapValue(element, iter.Value(), opt) {
+			return false
+		}
+		dest.SetMapIndex(key, element)
+	}
+	return true
+}
+
+func mapInterfaceValue(value reflect.Value) interface{} {
+	for value.IsValid() && value.Kind() == reflect.Interface {
+		if value.IsNil() {
+			return nil
+		}
+		value = value.Elem()
+	}
+	if !value.IsValid() {
+		return nil
+	}
+	return value.Interface()
+}
+
+func valueIsZero(value reflect.Value) bool {
+	for value.IsValid() && value.Kind() == reflect.Interface {
+		if value.IsNil() {
+			return true
+		}
+		value = value.Elem()
+	}
+	return value.IsValid() && value.IsZero()
+}
+
+func parseMapTime(value string, options map[string]string) time.Time {
+	loc, layout := mapTimeOptions(options)
+	location, err := time.LoadLocation(loc)
+	if err != nil {
+		panic(err)
+	}
+	parsed, err := time.ParseInLocation(layout, value, location)
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}
+
+func formatMapTime(value time.Time, options map[string]string) string {
+	loc, layout := mapTimeOptions(options)
+	location, err := time.LoadLocation(loc)
+	if err != nil {
+		panic(err)
+	}
+	return value.In(location).Format(layout)
+}
+
+func mapTimeOptions(options map[string]string) (string, string) {
+	loc, ok := options["loc"]
+	if !ok {
+		loc = defaultTimeLoc
+	}
+	layout, ok := options["layout"]
+	if !ok {
+		layout = defaultTimeLayout
+	}
+	return loc, layout
+}

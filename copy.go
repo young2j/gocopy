@@ -14,9 +14,9 @@ type Option struct {
 	// for slice,map and struct slice/map field
 	Append bool
 	// for struct to struct/map
-	NameFromTo       map[string]string
-	TimeToString     map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
-	StringToTime     map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
+	NameFromTo   map[string]string
+	TimeToString map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
+	StringToTime map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
 	// for strcut to struct/map
 	Converters map[string]func(interface{}) interface{}
 	// only for struct to map
@@ -64,7 +64,9 @@ func CopyWithOption(to, from interface{}, opt *Option) {
 		copyStruct(toValue, fromValue, opt)
 	} else if toKind == reflect.Map && fromKind == reflect.Struct {
 		copyStruct2Map(toValue, fromValue, opt)
+	} else if toKind == reflect.Struct && fromKind == reflect.Map {
+		copyMap2Struct(toValue, fromValue, opt)
 	} else {
-		panic("can only copy slice to slice, map to map, struct to struct.")
+		panic("can only copy slice to slice, map to map, struct to struct, map to struct.")
 	}
 }
