@@ -223,7 +223,18 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 		switch fromFieldValue.Kind() {
 		// slice to slice, need to avoid zero slice
 		case reflect.Slice:
+			// The common struct-to-map case stores a slice value directly in an
+			// interface-valued map. Clone it once instead of allocating a
+			// temporary destination and routing through the reflective copier.
+			// Append mode still needs the general path to merge existing values.
 			fromElemType, _ := indirectType(fromFieldType.Elem())
+			shallowElem := fromElemType.Kind() != reflect.Struct && fromElemType.Kind() != reflect.Map && fromElemType.Kind() != reflect.Slice
+			if !opt.Append && !fromFieldValue.IsNil() && shallowElem && fromFieldType.AssignableTo(toVType) {
+				cloned := reflect.MakeSlice(fromFieldValue.Type(), fromFieldValue.Len(), fromFieldValue.Len())
+				reflect.Copy(cloned, fromFieldValue)
+				toValue.SetMapIndex(toKey, cloned)
+				continue
+			}
 			toElemType, elemIsPtr := indirectType(toVType.Elem())
 			fromElemIsStruct := fromElemType.Kind() == reflect.Struct
 			toElemIsStruct := toElemType.Kind() == reflect.Struct
@@ -283,6 +294,20 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 
 		// map set kv, need to avoid nil map
 		case reflect.Map:
+			// A nil source map has no entries to recursively copy. Preserve the
+			// existing empty-map result with one allocation instead of creating
+			// temporary maps that copyMap immediately replaces.
+			if !opt.Append && fromFieldValue.IsNil() {
+				empty := reflect.MakeMapWithSize(toType, 0)
+				if toVIsPtr {
+					wrapped := reflect.New(toType)
+					wrapped.Elem().Set(empty)
+					toValue.SetMapIndex(toKey, wrapped)
+				} else {
+					toValue.SetMapIndex(toKey, empty)
+				}
+				continue
+			}
 			fromElemType, _ := indirectType(fromFieldType.Elem())
 			toElemType, elemIsPtr := indirectType(toVType.Elem())
 			fromElemIsStruct := fromElemType.Kind() == reflect.Struct

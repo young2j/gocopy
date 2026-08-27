@@ -171,3 +171,32 @@ func TestCopyPreservesMapCycles(t *testing.T) {
 		t.Fatalf("map cycle was not preserved: %#v", output)
 	}
 }
+
+func TestStructToMapClonesSliceValues(t *testing.T) {
+	type source struct {
+		Values []string
+	}
+
+	input := source{Values: []string{"before"}}
+	output := map[string]interface{}{}
+	Copy(&output, input)
+
+	input.Values[0] = "after"
+	values, ok := output["values"].([]string)
+	if !ok || len(values) != 1 || values[0] != "before" {
+		t.Fatalf("slice value was aliased instead of cloned: %#v", output["values"])
+	}
+}
+
+func TestStructToMapNilMapRemainsEmpty(t *testing.T) {
+	type source struct {
+		Values map[string]int
+	}
+
+	output := map[string]interface{}{}
+	Copy(&output, source{})
+	values, ok := output["values"].(map[string]interface{})
+	if !ok || values == nil || len(values) != 0 {
+		t.Fatalf("nil map was not represented as an empty map: %#v", output["values"])
+	}
+}
