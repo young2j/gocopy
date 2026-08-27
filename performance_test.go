@@ -60,6 +60,19 @@ func BenchmarkCopyStruct2Map(b *testing.B) {
 	}
 }
 
+func BenchmarkCopyStruct2MapNested(b *testing.B) {
+	source := AccessRolePerms1{
+		Role:    "admin",
+		Perms:   []*Perm1{{Action: "GET", Label: "read"}, {Action: "POST", Label: "write"}},
+		PermMap: map[string]*Perm1{"read": {Action: "GET", Label: "read"}},
+	}
+	destination := map[string]interface{}{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Copy(&destination, source)
+	}
+}
+
 func BenchmarkCopySliceNested(b *testing.B) {
 	source := []*Perm1{{Action: "GET", Label: "read"}, {Action: "POST", Label: "write"}}
 	destination := []*Perm2{}

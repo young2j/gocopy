@@ -252,8 +252,9 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 				toV = indirectValue(reflect.New(targetType))
 				// toVType is slice of struct, need to transfrom every elem to map/*map
 			} else if toElemIsStruct {
-				toSliceOfMap := indirectValue(reflect.New(targetType))
 				toV = reflect.ValueOf(toV.Interface())
+				toSliceOfMap := reflect.MakeSlice(targetType, toV.Len(), toV.Len())
+				out := 0
 				for i := 0; i < toV.Len(); i++ {
 					if !toV.Index(i).IsValid() {
 						continue
@@ -263,7 +264,11 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 					if !elemIsPtr {
 						toElemV = indirectValue(toElemV)
 					}
-					toSliceOfMap.Set(reflect.Append(toSliceOfMap, toElemV))
+					toSliceOfMap.Index(out).Set(toElemV)
+					out++
+				}
+				if out != toSliceOfMap.Len() {
+					toSliceOfMap = toSliceOfMap.Slice(0, out)
 				}
 				toV = toSliceOfMap
 			}
@@ -274,6 +279,15 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 			if !fromElemIsStruct {
 				copySlice(dest, fromFV, opt)
 			} else {
+				start := dest.Len()
+				fromLen := fromFieldValue.Len()
+				if dest.Cap() < start+fromLen {
+					grown := reflect.MakeSlice(targetType, start, start+fromLen)
+					reflect.Copy(grown, dest)
+					dest = grown
+				}
+				dest = dest.Slice(0, start+fromLen)
+				out := start
 				for i := 0; i < fromFieldValue.Len(); i++ {
 					if !fromFieldValue.Index(i).IsValid() {
 						continue
@@ -283,7 +297,11 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 					if !elemIsPtr {
 						toElemValue = indirectValue(toElemValue)
 					}
-					dest.Set(reflect.Append(dest, toElemValue))
+					dest.Index(out).Set(toElemValue)
+					out++
+				}
+				if out != start+fromLen {
+					dest = dest.Slice(0, out)
 				}
 			}
 
