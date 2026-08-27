@@ -64,7 +64,7 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 		toKey := reflect.ValueOf(toFieldName)
 
 		// whether ignore zero value
-		fromFV := fromValue.FieldByName(fromField.Name)
+		fromFV := fromValue.FieldByIndex(fromField.Index)
 		if fromFV.IsZero() && opt.IgnoreZero {
 			continue
 		}

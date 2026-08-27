@@ -41,13 +41,13 @@ func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 			toFieldName = fromField.Name
 		}
 		// whether field is in toType
-		toField, ok := toType.FieldByName(toFieldName)
+		toField, ok := fieldByName(toType, toFieldName)
 		if !ok {
 			continue
 		}
-		fromFValue := fromValue.FieldByName(fromField.Name)
+		fromFValue := fromValue.FieldByIndex(fromField.Index)
 		fromFieldValue := indirectValue(fromFValue)
-		toFieldValue := toValue.FieldByName(toField.Name)
+		toFieldValue := toValue.FieldByIndex(toField.Index)
 
 		fromFieldType, _ := indirectType(fromField.Type)
 		toFieldType, toFieldIsPtr := indirectType(toField.Type)
