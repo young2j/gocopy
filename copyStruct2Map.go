@@ -351,6 +351,26 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 			toElemType, elemIsPtr := indirectType(toVType.Elem())
 			fromElemIsStruct := fromElemType.Kind() == reflect.Struct
 			toElemIsStruct := toElemType.Kind() == reflect.Struct
+			if !opt.Append && !toV.IsValid() && fromElemIsStruct {
+				result := reflect.New(toType)
+				resultMap := indirectValue(result)
+				resultMap.Set(reflect.MakeMapWithSize(toType, fromFieldValue.Len()))
+				iter := fromFieldValue.MapRange()
+				for iter.Next() {
+					value := reflect.New(toType)
+					copyStruct2Map(value, iter.Value(), opt)
+					if !elemIsPtr {
+						value = indirectValue(value)
+					}
+					resultMap.SetMapIndex(iter.Key(), value)
+				}
+				if toVIsPtr {
+					toValue.SetMapIndex(toKey, result)
+				} else {
+					toValue.SetMapIndex(toKey, resultMap)
+				}
+				continue
+			}
 
 			if !toV.IsValid() { // zero map
 				toV = indirectValue(reflect.New(toType))
