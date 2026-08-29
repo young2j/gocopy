@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+var (
+	interfaceType          = reflect.TypeOf((*interface{})(nil)).Elem()
+	mapStringInterfaceType = reflect.TypeOf(map[string]interface{}{})
+	mapInterfaceType       = reflect.TypeOf(map[interface{}]interface{}{})
+)
+
 // copyMap2Struct copies string-keyed map values into matching exported struct fields.
 func copyMap2Struct(toValue, fromValue reflect.Value, opt *Option) {
 	if beginPointerCopy(fromValue, toValue, opt) {
@@ -18,7 +24,7 @@ func copyMap2Struct(toValue, fromValue reflect.Value, opt *Option) {
 
 	infos := fieldInfos(toValue.Type())
 	var keyIndex map[string]reflect.Value
-	if fromValue.Type().Key().Kind() == reflect.Interface && fromValue.Len() > 4 {
+	if fromValue.Type().Key().Kind() == reflect.Interface && fromValue.Len() > 4 && fromValue.Type() != mapInterfaceType {
 		keyIndex = make(map[string]reflect.Value, fromValue.Len())
 		iter := fromValue.MapRange()
 		for iter.Next() {
@@ -122,6 +128,26 @@ func mapField(fromValue reflect.Value, field reflect.StructField, tagName, lower
 
 func mapLookup(fromValue reflect.Value, name string) (reflect.Value, bool) {
 	keyType := fromValue.Type().Key()
+	if fromValue.Type() == mapStringInterfaceType {
+		value, ok := fromValue.Interface().(map[string]interface{})[name]
+		if !ok {
+			return reflect.Value{}, false
+		}
+		if value == nil {
+			return reflect.Zero(interfaceType), true
+		}
+		return reflect.ValueOf(value), true
+	}
+	if fromValue.Type() == mapInterfaceType {
+		value, ok := fromValue.Interface().(map[interface{}]interface{})[name]
+		if !ok {
+			return reflect.Value{}, false
+		}
+		if value == nil {
+			return reflect.Zero(interfaceType), true
+		}
+		return reflect.ValueOf(value), true
+	}
 	if keyType.Kind() == reflect.String {
 		key := reflect.ValueOf(name)
 		if key.Type() != keyType {
@@ -221,15 +247,28 @@ func assignMapToSlice(dest, source reflect.Value, opt *Option) bool {
 		dest.Set(source)
 		return true
 	}
-	if opt == nil || !opt.Append {
-		dest.Set(reflect.MakeSlice(dest.Type(), 0, source.Len()))
+	appendMode := opt != nil && opt.Append
+	if !appendMode {
+		dest.Set(reflect.MakeSlice(dest.Type(), source.Len(), source.Len()))
+		for i := 0; i < source.Len(); i++ {
+			if !assignMapValue(dest.Index(i), source.Index(i), opt) {
+				return false
+			}
+		}
+		return true
 	}
+	start := dest.Len()
+	needed := start + source.Len()
+	if dest.Cap() < needed {
+		grown := reflect.MakeSlice(dest.Type(), start, needed)
+		reflect.Copy(grown, dest)
+		dest.Set(grown)
+	}
+	dest.SetLen(needed)
 	for i := 0; i < source.Len(); i++ {
-		element := reflect.New(dest.Type().Elem()).Elem()
-		if !assignMapValue(element, source.Index(i), opt) {
+		if !assignMapValue(dest.Index(start+i), source.Index(i), opt) {
 			return false
 		}
-		dest.Set(reflect.Append(dest, element))
 	}
 	return true
 }

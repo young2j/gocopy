@@ -226,3 +226,39 @@ func TestStructToMapValueStructSlice(t *testing.T) {
 		t.Fatalf("value struct slice was not converted: %#v", output["items"])
 	}
 }
+
+func TestMapToStructNilInterfaceValue(t *testing.T) {
+	type destination struct {
+		Name string
+	}
+
+	value := destination{Name: "keep"}
+	Copy(&value, map[string]interface{}{"name": nil})
+	if value.Name != "" {
+		t.Fatalf("nil interface value was not assigned as zero: %#v", value)
+	}
+}
+
+func TestMapToStructNilInterfaceKeyValue(t *testing.T) {
+	type destination struct {
+		Name string
+	}
+
+	value := destination{Name: "keep"}
+	Copy(&value, map[interface{}]interface{}{"name": nil})
+	if value.Name != "" {
+		t.Fatalf("nil interface-key value was not assigned as zero: %#v", value)
+	}
+}
+
+func TestMapToStructSliceAppend(t *testing.T) {
+	type destination struct {
+		Items []string
+	}
+
+	value := destination{Items: []string{"old"}}
+	CopyWithOption(&value, map[string]interface{}{"items": []interface{}{"new"}}, &Option{Append: true})
+	if len(value.Items) != 2 || value.Items[0] != "old" || value.Items[1] != "new" {
+		t.Fatalf("slice append was not preserved: %#v", value.Items)
+	}
+}

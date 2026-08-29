@@ -33,7 +33,7 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 	// type
 	fromType, _ := indirectType(fromValue.Type())
 	toType, _ := indirectType(toValue.Type())
-	if toType == reflect.TypeOf(map[string]interface{}{}) && plainValueType(fromType) && canDirectStructCopy(opt) {
+	if toType == mapStringInterfaceType && plainValueType(fromType) && canDirectStructCopy(opt) {
 		copyPlainStructToMap(toValue, fromValue, fromType, toType, opt)
 		return
 	}
