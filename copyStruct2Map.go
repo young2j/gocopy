@@ -248,6 +248,17 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 					targetType = reflect.SliceOf(toType)
 				}
 			}
+			if !opt.Append && fromFieldValue.IsNil() {
+				nilSlice := reflect.Zero(targetType)
+				if toVIsPtr {
+					wrapped := reflect.New(targetType)
+					wrapped.Elem().Set(nilSlice)
+					toValue.SetMapIndex(toKey, wrapped)
+				} else {
+					toValue.SetMapIndex(toKey, nilSlice)
+				}
+				continue
+			}
 			if !toV.IsValid() { // zero slice
 				toV = indirectValue(reflect.New(targetType))
 				// toVType is slice of struct, need to transfrom every elem to map/*map

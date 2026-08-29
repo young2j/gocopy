@@ -200,3 +200,16 @@ func TestStructToMapNilMapRemainsEmpty(t *testing.T) {
 		t.Fatalf("nil map was not represented as an empty map: %#v", output["values"])
 	}
 }
+
+func TestStructToMapNilSliceRemainsNil(t *testing.T) {
+	type source struct {
+		Values []string
+	}
+
+	output := map[string]interface{}{}
+	Copy(&output, source{})
+	values, ok := output["values"].([]string)
+	if !ok || values != nil {
+		t.Fatalf("nil slice was not preserved: %#v", output["values"])
+	}
+}

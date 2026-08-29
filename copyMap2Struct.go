@@ -40,7 +40,7 @@ func copyMap2Struct(toValue, fromValue reflect.Value, opt *Option) {
 		if info.skip {
 			continue
 		}
-		sourceName, sourceValue, ok := mapField(fromValue, field, info.tagName, keyIndex, opt)
+		sourceName, sourceValue, ok := mapField(fromValue, field, info.tagName, info.lowerCamel, keyIndex, opt)
 		if !ok {
 			continue
 		}
@@ -79,7 +79,7 @@ func copyMap2Struct(toValue, fromValue reflect.Value, opt *Option) {
 	}
 }
 
-func mapField(fromValue reflect.Value, field reflect.StructField, tagName string, keyIndex map[string]reflect.Value, opt *Option) (string, reflect.Value, bool) {
+func mapField(fromValue reflect.Value, field reflect.StructField, tagName, lowerCamel string, keyIndex map[string]reflect.Value, opt *Option) (string, reflect.Value, bool) {
 	fieldName := field.Name
 	// Most copies have no rename rules. Keep the candidate names on the stack
 	// and allocate only when a large rename table requires more space.
@@ -98,11 +98,11 @@ func mapField(fromValue reflect.Value, field reflect.StructField, tagName string
 		names = append(names, tagName)
 	}
 	names = append(names, fieldName)
-	caseName := fieldName
-	if opt.ToCase == "" {
-		caseName = caseFunc["LowerCamel"](fieldName)
-	} else if convertCase, ok := caseFunc[opt.ToCase]; ok {
-		caseName = convertCase(fieldName)
+	caseName := lowerCamel
+	if opt.ToCase != "" {
+		if convertCase, ok := caseFunc[opt.ToCase]; ok {
+			caseName = convertCase(fieldName)
+		}
 	}
 	if caseName != fieldName {
 		names = append(names, caseName)
