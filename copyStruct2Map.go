@@ -49,6 +49,7 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 	} else {
 		fromFields = fieldInfos(fromType)
 	}
+	nativeMap := map[string]interface{}(nil)
 
 	// avoid tomap is nil or not append
 	if toValue.IsNil() || (!opt.Append && toValue.CanSet()) {
@@ -58,6 +59,9 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 		}
 		toNewMap := reflect.MakeMapWithSize(toType, fieldCapacity)
 		toValue.Set(toNewMap)
+	}
+	if toType == mapStringInterfaceType && canDirectStructCopy(opt) {
+		nativeMap = toValue.Interface().(map[string]interface{})
 	}
 
 	fieldCount := len(fromFields)
@@ -178,7 +182,11 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 				toFV.Set(reflect.ValueOf(timeString))
 				toValue.SetMapIndex(toKey, toFV.Addr())
 			} else {
-				toValue.SetMapIndex(toKey, reflect.ValueOf(timeString))
+				if nativeMap != nil {
+					nativeMap[toFieldName] = timeString
+				} else {
+					toValue.SetMapIndex(toKey, reflect.ValueOf(timeString))
+				}
 			}
 			continue
 		}
@@ -219,7 +227,11 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 				toFV.Set(reflect.ValueOf(timeTime))
 				toValue.SetMapIndex(toKey, toFV.Addr())
 			} else {
-				toValue.SetMapIndex(toKey, reflect.ValueOf(timeTime))
+				if nativeMap != nil {
+					nativeMap[toFieldName] = timeTime
+				} else {
+					toValue.SetMapIndex(toKey, reflect.ValueOf(timeTime))
+				}
 			}
 			continue
 		}
@@ -474,6 +486,8 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 				toV.Set(fromFieldValue)
 				toV = toV.Addr()
 				toValue.SetMapIndex(toKey, toV)
+			} else if nativeMap != nil {
+				nativeMap[toFieldName] = fromFieldValue.Interface()
 			} else {
 				toValue.SetMapIndex(toKey, fromFieldValue)
 			}
