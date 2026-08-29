@@ -33,6 +33,10 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 	// type
 	fromType, _ := indirectType(fromValue.Type())
 	toType, _ := indirectType(toValue.Type())
+	if toType == reflect.TypeOf(map[string]interface{}{}) && plainValueType(fromType) && canDirectStructCopy(opt) {
+		copyPlainStructToMap(toValue, fromValue, fromType, toType, opt)
+		return
+	}
 
 	caseName := opt.ToCase
 	if caseName == "" {
@@ -453,6 +457,30 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 			} else {
 				toValue.SetMapIndex(toKey, fromFieldValue)
 			}
+		}
+	}
+}
+
+func copyPlainStructToMap(toValue, fromValue reflect.Value, fromType, toType reflect.Type, opt *Option) {
+	caseName := opt.ToCase
+	if caseName == "" {
+		caseName = "LowerCamel"
+	}
+	plans := mapFieldPlans(fromType, toType, caseName)
+	if toValue.IsNil() || (!opt.Append && toValue.CanSet()) {
+		toValue.Set(reflect.MakeMapWithSize(toType, len(plans)))
+	}
+	destination := toValue.Interface().(map[string]interface{})
+	for _, plan := range plans {
+		if plan.info.skip {
+			continue
+		}
+		value := fromValue.FieldByIndex(plan.info.field.Index)
+		if value.IsValid() {
+			if plan.info.omitEmpty && value.IsZero() {
+				continue
+			}
+			destination[plan.name] = value.Interface()
 		}
 	}
 }

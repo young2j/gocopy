@@ -18,6 +18,15 @@ func BenchmarkCopyPlainStruct(b *testing.B) {
 	}
 }
 
+func BenchmarkCopyPlainStruct2Map(b *testing.B) {
+	source := plainCopyValue{ID: 42, Name: "value", Enabled: true, Scores: [4]uint32{1, 2, 3, 4}}
+	destination := map[string]interface{}{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Copy(&destination, source)
+	}
+}
+
 func BenchmarkCopyMap2Struct(b *testing.B) {
 	source := map[string]interface{}{
 		"role":    "admin",
