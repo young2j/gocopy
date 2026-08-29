@@ -85,8 +85,8 @@ func main() {
 	pss2 = make([]*types.Perm, 0)
 	gocopy.Copy(&pss2, &ss1)
 	// copier.Copy(&pss2, &ss1)
-	for _, v := range ss2 {
-		fmt.Printf("to ptr struct slice-> ptrss2: %#v\n", v)
+	for _, v := range pss2 {
+		fmt.Printf("to ptr struct slice-> pss2: %#v\n", v)
 	}
 
 	// map to map
@@ -539,4 +539,20 @@ func main() {
 	fmt.Printf("tom[\"Id3\"]: %v\n", tom["Id3"])
 	fmt.Printf("tom[\"Id1Hex\"]: %v\n", tom["Id1Hex"])
 	fmt.Printf("tom[\"Id1Hex\"]: %v\n", tom["Id1Hex"])
+
+	// 15. focused map <-> struct quick start
+	type User struct {
+		UserName string `gocopy:"user_name"`
+		Age      int
+	}
+	input := map[string]interface{}{"user_name": "alice", "age": int64(30)}
+	var user User
+	if err := gocopy.CopyE(&user, input); err != nil {
+		panic(err)
+	}
+	output := map[string]interface{}{}
+	gocopy.Copy(&output, user)
+	fmt.Println("==============================")
+	fmt.Printf("map->struct: %#v\n", user)
+	fmt.Printf("struct->map: %#v\n", output)
 }

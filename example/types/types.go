@@ -1,9 +1,4 @@
-/*
- * File: types.go
- * Created Date: 2022-01-29 01:29:56
- * Author: ysj
- * Description:
- */
+// Package types contains destination types used by the runnable examples.
 package types
 
 import (
@@ -13,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// Perm is the destination permission shape.
 type Perm struct {
 	anonymous1 string
 	anonymous2 int
@@ -20,6 +16,7 @@ type Perm struct {
 	Label      string
 }
 
+// AccessRolePerms demonstrates a destination with different field types.
 type AccessRolePerms struct {
 	Id1       *string
 	Id2       string

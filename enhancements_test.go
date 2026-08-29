@@ -262,3 +262,117 @@ func TestMapToStructSliceAppend(t *testing.T) {
 		t.Fatalf("slice append was not preserved: %#v", value.Items)
 	}
 }
+
+func TestMapToStructNestedPointersAndConversions(t *testing.T) {
+	type child struct {
+		Name string
+	}
+	type destination struct {
+		ID     int
+		Child  *child
+		Scores []int
+		Meta   map[string]int
+	}
+
+	var value destination
+	Copy(&value, map[string]interface{}{
+		"id":     int64(42),
+		"child":  map[string]interface{}{"name": "nested"},
+		"scores": []interface{}{int64(1), int64(2)},
+		"meta":   map[string]interface{}{"active": int64(1)},
+	})
+
+	if value.ID != 42 || value.Child == nil || value.Child.Name != "nested" {
+		t.Fatalf("nested pointer conversion failed: %#v", value)
+	}
+	if len(value.Scores) != 2 || value.Scores[1] != 2 || value.Meta["active"] != 1 {
+		t.Fatalf("nested collection conversion failed: %#v", value)
+	}
+}
+
+func TestMapToStructSnakeCaseAndCustomKeyType(t *testing.T) {
+	type key string
+	type destination struct {
+		UserName string
+		HTTPCode int
+	}
+
+	var value destination
+	CopyWithOption(&value, map[key]interface{}{
+		"user_name": "alice",
+		"http_code": int64(200),
+	}, &Option{ToCase: "Snake"})
+	if value.UserName != "alice" || value.HTTPCode != 200 {
+		t.Fatalf("snake_case or named-key lookup failed: %#v", value)
+	}
+}
+
+func TestStructToMapOptionsAndTags(t *testing.T) {
+	type source struct {
+		UserName string `json:"user_name"`
+		HTTPCode int    `bson:"http_code"`
+		Empty    string `gocopy:"empty,omitempty"`
+		Secret   string
+	}
+
+	result := map[string]interface{}{}
+	CopyWithOption(&result, source{UserName: "alice", HTTPCode: 200, Secret: "hidden"}, &Option{
+		ToCase:       "Snake",
+		IgnoreZero:   true,
+		IgnoreFields: []string{"Secret"},
+	})
+	if result["user_name"] != "alice" || result["http_code"] != 200 {
+		t.Fatalf("tags were not preserved: %#v", result)
+	}
+	if _, ok := result["empty"]; ok {
+		t.Fatalf("omitempty field should be omitted: %#v", result)
+	}
+	if _, ok := result["secret"]; ok {
+		t.Fatalf("ignored field should be omitted: %#v", result)
+	}
+}
+
+func TestStructToMapCaseNames(t *testing.T) {
+	type source struct {
+		UserName string
+	}
+	expected := map[string]string{
+		"LowerCamel":     "userName",
+		"Camel":          "UserName",
+		"Snake":          "user_name",
+		"ScreamingSnake": "USER_NAME",
+		"Kebab":          "user-name",
+		"ScreamingKebab": "USER-NAME",
+	}
+	for name, key := range expected {
+		t.Run(name, func(t *testing.T) {
+			result := map[string]interface{}{}
+			CopyWithOption(&result, source{UserName: "alice"}, &Option{ToCase: name})
+			if result[key] != "alice" {
+				t.Fatalf("ToCase %s produced %#v, want key %q", name, result, key)
+			}
+		})
+	}
+}
+
+func TestStructToMapNilPointerIsOmitted(t *testing.T) {
+	type source struct {
+		Name  string
+		Child *struct{ Value int }
+	}
+
+	result := map[string]interface{}{}
+	Copy(&result, source{Name: "root"})
+	if result["name"] != "root" {
+		t.Fatalf("scalar field missing: %#v", result)
+	}
+	if _, ok := result["child"]; ok {
+		t.Fatalf("nil pointer field should not be emitted: %#v", result)
+	}
+}
+
+func TestCopyERejectsUnsupportedDestination(t *testing.T) {
+	if err := CopyE(new(int), []string{"invalid"}); err == nil {
+		t.Fatal("expected unsupported conversion error")
+	}
+}

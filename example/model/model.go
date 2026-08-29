@@ -1,10 +1,4 @@
-/*
- * File: model.go
- * Created Date: 2022-01-29 01:29:06
- * Author: ysj
- * Description:
- */
-
+// Package model contains source types used by the runnable examples.
 package model
 
 import (
@@ -14,16 +8,19 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// Perm is a permission in the source model.
 type Perm struct {
 	Action string
 	Label  string
 }
 
+// EmbedFields demonstrates promotion of anonymous embedded fields.
 type EmbedFields struct {
 	EmbedF1 string
 	embedF2 string
 }
 
+// AccessRolePerms exercises nested pointers, slices, maps, and time values.
 type AccessRolePerms struct {
 	CreatedAt time.Time
 	UpdatedAt string

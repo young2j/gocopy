@@ -16,7 +16,8 @@ var (
 	defaultTimeLayout = "2006-01-02 15:04:05"
 )
 
-// copyStruct copy struct to struct
+// copyStruct copies exported fields by name, applying rename, time, converter,
+// ignore, and append options before recursively handling nested values.
 func copyStruct(toValue, fromValue reflect.Value, opt *Option) {
 	if beginPointerCopy(fromValue, toValue, opt) {
 		return

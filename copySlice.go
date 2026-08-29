@@ -11,7 +11,8 @@ import (
 	"reflect"
 )
 
-// copySlice copy slice to slice
+// copySlice copies slice elements while reusing destination capacity whenever
+// possible. Nested elements are delegated to the corresponding copy routine.
 func copySlice(toValue, fromValue reflect.Value, opt *Option) {
 	if beginPointerCopy(fromValue, toValue, opt) {
 		return

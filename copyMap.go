@@ -11,7 +11,8 @@ import (
 	"reflect"
 )
 
-// copyMap copy map to map
+// copyMap recursively copies map entries, preserving destination map values
+// when Append is enabled and converting nested slices, maps, and structs.
 func copyMap(toValue, fromValue reflect.Value, opt *Option) {
 	if beginPointerCopy(fromValue, toValue, opt) {
 		return

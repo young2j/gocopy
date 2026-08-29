@@ -23,7 +23,9 @@ var caseFunc = map[string]func(s string) string{
 	"ScreamingKebab": strcase.ToScreamingKebab,
 }
 
-// copyStruct2Map copy struct to map
+// copyStruct2Map writes exported struct fields into a map. Field tags and
+// ToCase determine keys; nested structs become nested maps and slices/maps are
+// cloned or merged according to the options.
 func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 	if beginPointerCopy(fromValue, toValue, opt) {
 		return

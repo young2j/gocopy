@@ -1,9 +1,6 @@
-/*
- * File: copy.go
- * Created Date: 2022-01-26 05:36:00
- * Author: ysj
- * Description: copy slice and map by type; copy struct by field name
- */
+// Package gocopy copies values between compatible slices, maps, and structs.
+// Common conversions use cached field metadata and direct assignments to keep
+// reflection overhead low.
 package gocopy
 
 import (
@@ -11,23 +8,32 @@ import (
 	"reflect"
 )
 
+// Option controls how CopyWithOption maps fields and combines destination data.
 type Option struct {
-	// for slice,map and struct slice/map field
+	// Append merges slices and maps into existing destination values.
 	Append bool
-	// for struct to struct/map
-	NameFromTo   map[string]string
-	TimeToString map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
-	StringToTime map[string]map[string]string // eg. {"CreateAt":{"loc":"Asia/Shanghai","layout":"2006-01-02"}}
-	// for strcut to struct/map
+	// NameFromTo renames source fields to destination fields (source -> target).
+	NameFromTo map[string]string
+	// TimeToString formats time.Time fields. Each value may contain loc and layout.
+	TimeToString map[string]map[string]string
+	// StringToTime parses string fields into time.Time. Each value may contain loc and layout.
+	StringToTime map[string]map[string]string
+	// Converters supplies custom source-field conversion functions.
 	Converters map[string]func(interface{}) interface{}
-	// only for struct to map
-	ToCase       string   // eg. "LowerCamel"(default)|"Camel"|"Snake"|"ScreamingSnake"|"Kebab"|"ScreamingKebab"
-	IgnoreZero   bool     // ignore zero value
-	IgnoreFields []string // slice of ignore field name
-	IgnoreLevel  int      // field in IgnoreFields that embed level is only less than or equal this value will be ignored.
-	state        *copyState
+	// ToCase controls struct-to-map keys: LowerCamel (default), Camel, Snake,
+	// ScreamingSnake, Kebab, or ScreamingKebab.
+	ToCase string
+	// IgnoreZero omits zero-valued fields when converting a struct to a map.
+	IgnoreZero bool
+	// IgnoreFields lists source field names to skip.
+	IgnoreFields []string
+	// IgnoreLevel limits IgnoreFields handling for embedded-field nesting levels.
+	IgnoreLevel int
+	state       *copyState
 }
 
+// Copy copies from into to using default options. to must be a pointer to a
+// writable destination (for example, &dst).
 func Copy(to, from interface{}) {
 	CopyWithOption(to, from, &Option{})
 }
@@ -37,7 +43,8 @@ func CopyE(to, from interface{}) (err error) {
 	return CopyWithOptionE(to, from, &Option{})
 }
 
-// CopyWithOptionE is the error-returning form of CopyWithOption.
+// CopyWithOptionE is the error-returning form of CopyWithOption. It converts
+// conversion panics into errors so callers can handle malformed input.
 func CopyWithOptionE(to, from interface{}, opt *Option) (err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -52,6 +59,9 @@ func CopyWithOptionE(to, from interface{}, opt *Option) (err error) {
 	return nil
 }
 
+// CopyWithOption copies from into to according to opt. Supported conversions
+// are slice-to-slice, map-to-map, struct-to-struct, struct-to-map, and
+// map-to-struct, including nested pointers, slices, and maps.
 func CopyWithOption(to, from interface{}, opt *Option) {
 	if opt == nil {
 		opt = &Option{}

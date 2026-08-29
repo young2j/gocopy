@@ -11,7 +11,9 @@ var (
 	mapInterfaceType       = reflect.TypeOf(map[interface{}]interface{}{})
 )
 
-// copyMap2Struct copies string-keyed map values into matching exported struct fields.
+// copyMap2Struct copies string-keyed map values into matching exported struct
+// fields. It accepts map[string]T and interface-keyed maps whose keys contain
+// strings, and recursively converts nested maps, slices, pointers, and values.
 func copyMap2Struct(toValue, fromValue reflect.Value, opt *Option) {
 	if beginPointerCopy(fromValue, toValue, opt) {
 		return
