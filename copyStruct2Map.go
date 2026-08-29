@@ -47,7 +47,7 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 	}
 
 	// avoid tomap is nil or not append
-	if toValue.IsNil() || !opt.Append {
+	if toValue.IsNil() || (!opt.Append && toValue.CanSet()) {
 		fieldCapacity := len(fromFields)
 		if plans != nil {
 			fieldCapacity = len(plans)
@@ -271,6 +271,9 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 						continue
 					}
 					toElemV := reflect.New(toType) // map
+					if !elemIsPtr {
+						toElemV = reflect.MakeMapWithSize(toType, len(fieldInfos(toV.Index(i).Type())))
+					}
 					copyStruct2Map(toElemV, toV.Index(i), opt)
 					if !elemIsPtr {
 						toElemV = indirectValue(toElemV)
@@ -304,6 +307,9 @@ func copyStruct2Map(toValue, fromValue reflect.Value, opt *Option) {
 						continue
 					}
 					toElemValue := reflect.New(toType) // map
+					if !elemIsPtr {
+						toElemValue = reflect.MakeMapWithSize(toType, len(fieldInfos(fromElemType)))
+					}
 					copyStruct2Map(toElemValue, fromFieldValue.Index(i), opt)
 					if !elemIsPtr {
 						toElemValue = indirectValue(toElemValue)

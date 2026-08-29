@@ -213,3 +213,16 @@ func TestStructToMapNilSliceRemainsNil(t *testing.T) {
 		t.Fatalf("nil slice was not preserved: %#v", output["values"])
 	}
 }
+
+func TestStructToMapValueStructSlice(t *testing.T) {
+	type source struct {
+		Items []Perm1
+	}
+
+	output := map[string]interface{}{}
+	Copy(&output, source{Items: []Perm1{{Action: "GET", Label: "read"}}})
+	items, ok := output["items"].([]map[string]interface{})
+	if !ok || len(items) != 1 || items[0]["action"] != "GET" || items[0]["label"] != "read" {
+		t.Fatalf("value struct slice was not converted: %#v", output["items"])
+	}
+}

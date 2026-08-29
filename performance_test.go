@@ -73,6 +73,18 @@ func BenchmarkCopyStruct2MapNested(b *testing.B) {
 	}
 }
 
+func BenchmarkCopyStruct2MapNestedValues(b *testing.B) {
+	type source struct {
+		Items []Perm1
+	}
+	sourceValue := source{Items: []Perm1{{Action: "GET", Label: "read"}, {Action: "POST", Label: "write"}}}
+	destination := map[string]interface{}{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Copy(&destination, sourceValue)
+	}
+}
+
 func BenchmarkCopySliceNested(b *testing.B) {
 	source := []*Perm1{{Action: "GET", Label: "read"}, {Action: "POST", Label: "write"}}
 	destination := []*Perm2{}
