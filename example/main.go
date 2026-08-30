@@ -540,7 +540,29 @@ func main() {
 	fmt.Printf("tom[\"Id1Hex\"]: %v\n", tom["Id1Hex"])
 	fmt.Printf("tom[\"Id1Hex\"]: %v\n", tom["Id1Hex"])
 
-	// 15. focused map <-> struct quick start
+	// 15. custom converter: the callback receives the original source field
+	// value and must return a value assignable to the destination field.
+	type PriceSource struct {
+		Cents int64
+	}
+	type PriceDestination struct {
+		Amount float64
+	}
+	var price PriceDestination
+	if err := gocopy.CopyWithOptionE(&price, PriceSource{Cents: 1299}, &gocopy.Option{
+		NameFromTo: map[string]string{"Cents": "Amount"},
+		Converters: map[string]func(interface{}) interface{}{
+			"Cents": func(v interface{}) interface{} {
+				cents := v.(int64) // v is the source field value, not the whole struct.
+				return float64(cents) / 100
+			},
+		},
+	}); err != nil {
+		panic(err)
+	}
+	fmt.Printf("converter Cents(int64) -> Amount(float64): %.2f\n", price.Amount)
+
+	// 16. focused map <-> struct quick start
 	type User struct {
 		UserName string `gocopy:"user_name"`
 		Age      int

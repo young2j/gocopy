@@ -1,6 +1,10 @@
 package gocopy
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/jinzhu/copier"
+)
 
 type plainCopyValue struct {
 	ID      int64
@@ -15,6 +19,15 @@ func BenchmarkCopyPlainStruct(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		Copy(&destination, source)
+	}
+}
+
+func BenchmarkCopierPlainStruct(b *testing.B) {
+	source := plainCopyValue{ID: 42, Name: "value", Enabled: true, Scores: [4]uint32{1, 2, 3, 4}}
+	destination := plainCopyValue{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = copier.Copy(&destination, source)
 	}
 }
 
@@ -103,11 +116,29 @@ func BenchmarkCopySliceNested(b *testing.B) {
 	}
 }
 
+func BenchmarkCopierSliceNested(b *testing.B) {
+	source := []*Perm1{{Action: "GET", Label: "read"}, {Action: "POST", Label: "write"}}
+	destination := []*Perm2{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = copier.Copy(&destination, source)
+	}
+}
+
 func BenchmarkCopyMapNested(b *testing.B) {
 	source := map[string]*Perm1{"read": {Action: "GET", Label: "read"}}
 	destination := map[string]*Perm2{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		Copy(&destination, source)
+	}
+}
+
+func BenchmarkCopierMapNested(b *testing.B) {
+	source := map[string]*Perm1{"read": {Action: "GET", Label: "read"}}
+	destination := map[string]*Perm2{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = copier.Copy(&destination, source)
 	}
 }

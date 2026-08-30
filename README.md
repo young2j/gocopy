@@ -135,6 +135,34 @@ For time options, omitting `loc` uses `Asia/Shanghai`; omitting `layout` uses
 `2006-01-02 15:04:05`. In append mode, nested slices and maps are merged while
 scalar fields are replaced by the source value.
 
+### Converters: callback parameter and return value
+
+`Converters` is keyed by the **source struct field name**. The callback
+parameter is that field's original value as `interface{}`—not the whole source
+struct. Return a value assignable to the destination field (or map entry):
+
+```go
+type Source struct{ Cents int64 }
+type Destination struct{ Amount float64 }
+
+var dst Destination
+err := gocopy.CopyWithOptionE(&dst, Source{Cents: 1299}, &gocopy.Option{
+    NameFromTo: map[string]string{"Cents": "Amount"},
+    Converters: map[string]func(interface{}) interface{}{
+        "Cents": func(v interface{}) interface{} {
+            cents := v.(int64)         // source field type
+            return float64(cents) / 100 // destination field type
+        },
+    },
+})
+```
+
+When source and destination field names differ, add a `NameFromTo` entry as in
+the example. Converters run once for each matching field. When the source field is a
+pointer, the callback receives that pointer; dereference it explicitly. A bad
+type assertion or incompatible return value can panic, so use
+`CopyWithOptionE` for untrusted input.
+
 ### Field tags
 
 Tags are checked in this order: `gocopy`, `json`, then `bson`. A tag name
@@ -166,21 +194,24 @@ Run benchmarks with:
 go test -run '^$' -bench . -benchmem -benchtime=1s -cpu=4
 ```
 
-Results from Apple M4 Pro (darwin/arm64, Go toolchain on 2026-08-30):
+Results from Apple M4 Pro (darwin/arm64, Go toolchain on 2026-08-31):
 
-| Benchmark | ns/op | B/op | allocs/op |
-| --- | ---: | ---: | ---: |
-| `BenchmarkCopy-4` | 745.9 | 592 | 7 |
-| `BenchmarkCopier-4` (comparison) | 5432 | 13728 | 49 |
-| `BenchmarkCopyPlainStruct-4` | 39.47 | 0 | 0 |
-| `BenchmarkCopyPlainStruct2Map-4` | 174.0 | 336 | 2 |
-| `BenchmarkCopyMap2Struct-4` | 228.6 | 56 | 2 |
-| `BenchmarkCopyMap2StructInterfaceKeys-4` | 516.9 | 0 | 0 |
-| `BenchmarkCopyStruct2Map-4` | 847.9 | 1384 | 18 |
-| `BenchmarkCopyStruct2MapNested-4` | 1645 | 2920 | 41 |
-| `BenchmarkCopyStruct2MapNestedValues-4` | 656.5 | 1264 | 20 |
-| `BenchmarkCopySliceNested-4` | 347.6 | 152 | 3 |
-| `BenchmarkCopyMapNested-4` | 296.3 | 336 | 4 |
+The table includes a `copier` comparison where that library supports the same
+conversion. `copier` does not implement struct↔map or map↔struct, so those
+rows are explicitly marked unsupported rather than measuring a failed call.
+
+| Workload | GoCopy ns/op | GoCopy B/op | GoCopy allocs/op | copier ns/op | copier B/op | copier allocs/op |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| nested struct→struct | 755.3 | 592 | 7 | 5550 | 13728 | 49 |
+| plain struct→struct | 40.85 | 0 | 0 | 1163 | 1960 | 11 |
+| plain struct→map | 180.1 | 336 | 2 | unsupported | — | — |
+| map→struct | 234.1 | 56 | 2 | unsupported | — | — |
+| interface-key map→struct | 532.9 | 0 | 0 | unsupported | — | — |
+| struct→map | 875.9 | 1384 | 18 | unsupported | — | — |
+| nested struct→map | 1666 | 2920 | 41 | unsupported | — | — |
+| nested value slice→map | 672.0 | 1264 | 20 | unsupported | — | — |
+| nested slice conversion | 353.0 | 152 | 3 | 1805 | 3320 | 27 |
+| nested map conversion | 302.4 | 336 | 4 | 1027 | 1640 | 15 |
 
 Benchmark numbers vary by CPU, Go version, and workload; rerun the command for
 your target environment.
